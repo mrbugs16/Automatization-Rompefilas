@@ -1,0 +1,18 @@
+# Evidencias generadas en cada ejecución (capturas, reportes, Excel de resultados)
+evidencias/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+
+# Datos locales que no se suben
+*.local.json
+
+# Excel abierto (archivo de bloqueo)
+~$*.xlsx
+
+.DS_Store
+Thumbs.db
+.idea/
+*.log

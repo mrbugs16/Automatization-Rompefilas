@@ -1,0 +1,51 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pytest",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "name": "TODO desatendido (sin esperas largas)",
+            "args": ["-m", "not lento", "--abrir-reporte"]
+        },
+        {
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pytest",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "name": "TODO desatendido (incluye inactividad y timeouts)",
+            "args": ["--abrir-reporte"]
+        },
+        {
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pytest",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "name": "TODO interactivo (con tarjeta, recibo y papel)",
+            "env": {"INTERACTIVO": "true"},
+            "args": ["--abrir-reporte"]
+        },
+        {
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pytest",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "name": "Happy path (HP-ROM-001)",
+            "args": ["-k", "HP_ROM_001", "--abrir-reporte"]
+        },
+        {
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pytest",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "name": "Archivo de prueba actual",
+            "args": ["${file}"]
+        }
+    ]
+}

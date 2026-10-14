@@ -1,0 +1,20 @@
+{
+  "_instrucciones": [
+    "Referencias de pago de QA (16 dígitos) que usan las pruebas.",
+    "valida: referencia con adeudos vigentes. Mientras no se complete un pago se reutiliza.",
+    "Cuando un pago se apruebe, mover la referencia a 'pagadas' y poner otra en 'valida' (CP-IC-ROM-003 usa 'pagadas').",
+    "cuenta_predial: la misma cuenta capturada como PU + cuenta + delegación (ej. PU-565336-01)."
+  ],
+  "valida": {
+    "referencia": "1009901056533601",
+    "contribuyente": "VICTOR HUGO Y COP . TELLO ROBLES",
+    "adeudos": 4,
+    "total": "$4,452.55"
+  },
+  "cuenta_predial": {"tipo": "PU", "cuenta": "565336", "delegacion": "01"},
+  "corta": "1234567890",
+  "inexistente": "0000000000000000",
+  "inexistente_2": "9999999999999999",
+  "inexistente_3": "5552222222222225",
+  "pagadas": []
+}
