@@ -13,11 +13,11 @@ from datetime import datetime
 import pytest
 
 from config import settings
-from config.datos_prueba import MSG_APP_PAGO, REF_VALIDA
-from core import adb
+from config.datos_prueba import MSG_APP_PAGO
+from core import adb, referencias
 from core.driver_factory import crear_driver, reiniciar_app, sesion_viva
 from core.evidencia import Evidencia
-from core.marcadores import PREFIJO_MANUAL, PREFIJO_PENDIENTE, bloqueado, requiere_tester
+from core.marcadores import PREFIJO_MANUAL, PREFIJO_PENDIENTE, bloqueado, pendiente, requiere_tester
 from core.matriz import cargar_matriz, escribir_resultados
 from core.reporte_html import generar_reporte
 from pages.kiosko_pages import FlujoKiosko
@@ -89,30 +89,53 @@ def flujo(driver, evidencia):
 
 
 @pytest.fixture
-def pantalla_cobro(flujo, evidencia):
-    """Lleva el flujo con la referencia válida hasta el módulo de pago de la T6.
+def cobro(flujo, evidencia):
+    """cobro(minimo=None, maximo=None): toma una referencia NUEVA ('disponible') cuyo total esté en el rango
+    y lleva el flujo hasta el módulo de pago de la T6. Regresa la referencia del catálogo.
     Si la app no se puede comunicar con la aplicación de pago, el caso queda Bloqueado (sin repetir el intento)."""
-    previo = APP_PAGO.get("estado")
-    if previo in ("error_app_pago", "sin_respuesta"):
-        bloqueado(f"'{MSG_APP_PAGO}' al elegir Tarjeta (visto en {APP_PAGO['caso']}); no se puede presentar la tarjeta")
-    estado = flujo.pagar_con_tarjeta(REF_VALIDA["referencia"])
-    APP_PAGO.setdefault("estado", estado)
-    APP_PAGO.setdefault("caso", evidencia.caso_id)
-    if estado == "error_app_pago":
-        bloqueado(f"'{MSG_APP_PAGO}' al elegir Tarjeta; no se puede presentar la tarjeta")
-    if estado == "sin_respuesta":
-        bloqueado(f"La app no respondió en {settings.TIMEOUT_APP_PAGO} s al elegir Tarjeta")
-    return estado
+    def _cobro(minimo=None, maximo=None):
+        try:
+            ref = referencias.disponible(minimo, maximo)
+        except LookupError as e:
+            pendiente(str(e))
+        evidencia.referencia, evidencia.monto = ref["referencia"], ref.get("monto")
+        evidencia.contribuyente = ref.get("contribuyente", "")
+        if APP_PAGO.get("estado") in ("error_app_pago", "sin_respuesta"):
+            bloqueado(f"'{MSG_APP_PAGO}' al elegir Tarjeta (visto en {APP_PAGO['caso']}); no se puede presentar la tarjeta")
+        estado = flujo.pagar_con_tarjeta(ref["referencia"])
+        APP_PAGO.setdefault("estado", estado)
+        APP_PAGO.setdefault("caso", evidencia.caso_id)
+        if estado == "error_app_pago":
+            bloqueado(f"'{MSG_APP_PAGO}' al elegir Tarjeta; no se puede presentar la tarjeta")
+        if estado == "sin_respuesta":
+            bloqueado(f"La app no respondió en {settings.TIMEOUT_APP_PAGO} s al elegir Tarjeta")
+        return ref
+    return _cobro
 
 
 @pytest.fixture
-def pago_aprobado(pantalla_cobro, flujo):
+def pantalla_cobro(cobro):
+    """Módulo de pago abierto con la primera referencia 'disponible'."""
+    return cobro()
+
+
+@pytest.fixture
+def marcar_pagada(evidencia):
+    """Tras un pago aprobado, la referencia pasa a 'pagada' (ya no es nueva; sirve para 'referencia repetida')."""
+    def _marcar():
+        if evidencia.referencia:
+            referencias.marcar_pagada(evidencia.referencia, evidencia.caso_id)
+    return _marcar
+
+
+@pytest.fixture
+def pago_aprobado(pantalla_cobro, flujo, marcar_pagada):
     """Precondición 'pago aprobado': el tester presenta una tarjeta con fondos (INTERACTIVO=true)."""
     requiere_tester("Requiere un pago aprobado con tarjeta física")
-    resultado = flujo.esperar_tarjeta_del_tester(
-        f"Presente una tarjeta CON FONDOS (débito o crédito) por {REF_VALIDA['total']} y capture el NIP si se pide.")
+    resultado = flujo.esperar_tarjeta_del_tester("Presente una tarjeta CON FONDOS (débito o crédito).")
     if resultado != "aprobado":
         bloqueado(f"Requiere un pago aprobado y el cobro terminó en '{resultado}'")
+    marcar_pagada()
     return resultado
 
 
@@ -186,6 +209,10 @@ def pytest_runtest_makereport(item, call):
         "error": error,
         "duracion": round(time.time() - getattr(item, "_inicio", time.time()), 1),
         "pasos_evidencia": ev.pasos if ev else [],
+        "referencia": getattr(ev, "referencia", ""),
+        "contribuyente": getattr(ev, "contribuyente", ""),
+        "monto": getattr(ev, "monto", None),
+        "tipo_pago": "6 MSI" if item.get_closest_marker("msi") else "",
         "meta": dict(marca.kwargs) if marca else {"caso": item.name},
     }
 
@@ -204,7 +231,8 @@ def pytest_sessionfinish(session, exitstatus):
             casos.append({"id": caso_id, **r["meta"], **{k: v for k, v in r.items() if k != "meta"}})
     # 2) Los casos de la matriz, en su orden, ejecutados o no
     for caso_id, fila in matriz.items():
-        r = RESULTADOS.get(caso_id, {"estado": "No ejecutado", "obtenido": "", "error": "", "duracion": 0, "pasos_evidencia": []})
+        r = RESULTADOS.get(caso_id, {"estado": "No ejecutado", "obtenido": "", "error": "", "duracion": 0, "pasos_evidencia": [],
+                                     "tipo_pago": "6 MSI" if caso_id.startswith("CP-MSI-") else ""})
         casos.append({**fila, **{k: v for k, v in r.items() if k != "meta"}})
 
     fin = datetime.now()

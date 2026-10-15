@@ -5,6 +5,7 @@ from openpyxl import load_workbook
 from openpyxl.styles import PatternFill
 
 from config import settings
+from core.xlsx import guardar_con_graficas
 
 COLUMNAS = {
     "Producto": "producto",
@@ -62,6 +63,15 @@ def cargar_matriz(ruta=settings.MATRIZ_XLSX):
     return casos
 
 
+def _observacion(r):
+    """Resultado obtenido + referencia y monto usados (si el caso llegó a consultar una referencia)."""
+    datos = [f"Ref: {r['referencia']}" if r.get("referencia") else "",
+             f"Monto: ${r['monto']:,.2f}" if r.get("monto") else "",
+             "6 MSI" if r.get("tipo_pago") == "6 MSI" else ""]
+    datos = " · ".join(d for d in datos if d)
+    return f"{r['obtenido']} [{datos}]" if datos else r["obtenido"]
+
+
 def escribir_resultados(resultados, destino, origen=settings.MATRIZ_XLSX):
     """Copia la matriz a 'destino' llenando Estatus, Tipo de Ejecución, Fecha, Evidencia y Observaciones."""
     wb = load_workbook(origen)
@@ -82,7 +92,7 @@ def escribir_resultados(resultados, destino, origen=settings.MATRIZ_XLSX):
             celda.fill = PatternFill("solid", start_color=color, end_color=color)
 
         if r["estado"] == "Manual":
-            ws.cell(fila, col["Observaciones"]).value = f"[Prueba manual] {r['obtenido']}"
+            ws.cell(fila, col["Observaciones"]).value = f"[Prueba manual] {_observacion(r)}"
             continue
 
         ws.cell(fila, col["Estatus Automatización"]).value = "Automatizada"
@@ -93,5 +103,5 @@ def escribir_resultados(resultados, destino, origen=settings.MATRIZ_XLSX):
         evidencia = ws.cell(fila, col["Evidencia"])
         evidencia.value = f"reporte.html#{caso_id}"
         evidencia.hyperlink = f"reporte.html#{caso_id}"
-        ws.cell(fila, col["Observaciones"]).value = r["obtenido"]
-    wb.save(destino)
+        ws.cell(fila, col["Observaciones"]).value = _observacion(r)
+    guardar_con_graficas(wb, destino, origen)

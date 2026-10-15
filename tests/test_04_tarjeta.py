@@ -103,7 +103,7 @@ def test_CP_TJ_ROM_008_nip_incorrecto(flujo, evidencia, pantalla_cobro):
 def test_CP_TJ_ROM_009_nip_intentos_maximos(flujo, evidencia, pantalla_cobro):
     requiere_tester("Requiere capturar un NIP incorrecto en el número máximo de intentos")
     resultado = flujo.esperar_tarjeta_del_tester("Capture un NIP INCORRECTO en todos los intentos que permita la T6.",
-                                                 timeout=settings.TIMEOUT_INTERACCION * 2)
+                                                 timeout=settings.TIMEOUT_TARJETA * 2)
     assert resultado in ("rechazado", "nip_incorrecto"), f"La transacción no se declinó (resultado: {resultado})"
     assert flujo.pago.existe(L.P4_BTN_INTENTAR, 2) or flujo.pago.existe(L.P4_BTN_REGRESAR_INICIO, 2), \
         "No se permite elegir otra tarjeta o regresar al inicio"

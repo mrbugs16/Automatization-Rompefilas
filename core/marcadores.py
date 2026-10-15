@@ -37,6 +37,12 @@ def requiere_tester(motivo):
         pytest.skip(f"{PREFIJO_MANUAL} {motivo} (correr con INTERACTIVO=true para que la suite guíe la prueba)")
 
 
+def validacion_manual(motivo):
+    """Para casos cuya preparación se automatiza pero el resultado lo valida el tester (ej. 6 MSI):
+    se deja la evidencia de lo automatizado y el caso queda 'Manual' con lo que falta revisar."""
+    pytest.skip(f"{PREFIJO_MANUAL} {motivo}")
+
+
 def pendiente(motivo):
     """Para usar dentro de una prueba cuando falta un dato o una funcionalidad de la que depende."""
     pytest.skip(f"{PREFIJO_PENDIENTE} {motivo}")

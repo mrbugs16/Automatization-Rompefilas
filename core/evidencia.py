@@ -27,6 +27,10 @@ class Evidencia:
         self.dir_caso = dir_ejecucion / "capturas" / caso_id
         self.pasos = []
         self.driver = None
+        # Datos del cobro que se muestran en el reporte (los llena FlujoKiosko al consultar)
+        self.referencia = ""
+        self.contribuyente = ""
+        self.monto = None
 
     def _contexto(self, driver):
         """En la T6 no hay URL: se registra la app y la actividad en pantalla."""

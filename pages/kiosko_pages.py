@@ -10,7 +10,7 @@ from selenium.common.exceptions import TimeoutException
 
 from config import locators as L
 from config import settings
-from core.interaccion import pedir_accion
+from core.interaccion import pedir_tarjeta
 from pages.base_page import BasePage
 
 
@@ -292,7 +292,16 @@ class FlujoKiosko:
         assert self.identificacion.visible(), "No se mostró P1 'Ingrese su referencia de pago'"
         self.identificacion.esperar_estable(0.5)
 
+    def _registrar(self, **datos):
+        """Guarda en la evidencia la referencia, el contribuyente y el monto del caso (para el reporte)."""
+        if self.ev:
+            for clave, valor in datos.items():
+                if valor not in (None, ""):
+                    setattr(self.ev, clave, valor)
+
     def capturar_referencia(self, referencia, captura=True):
+        if len(str(referencia)) == 16:
+            self._registrar(referencia=str(referencia))
         self.identificacion.teclear(referencia)
         if captura:
             self.identificacion.esperar_estable(0.5)
@@ -308,6 +317,10 @@ class FlujoKiosko:
         except TimeoutException:
             resultado = "sin_respuesta"
         self.identificacion.esperar_estable(0.8)
+        if resultado == "p2" and self.ev:
+            adeudos = self.adeudos.adeudos()
+            self._registrar(contribuyente=self.adeudos.contribuyente(),
+                            monto=round(sum(a["monto"] for a in adeudos), 2) if adeudos else None)
         return resultado
 
     def ir_a_adeudos(self, referencia):
@@ -322,6 +335,7 @@ class FlujoKiosko:
         self.adeudos.pagar()
         assert self.metodo.visible(), "No se avanzó a P3 '¿Cómo desea pagar?'"
         self.metodo.esperar_estable(0.8)
+        self._registrar(monto=self.metodo.total())  # el monto que se cobra es el de P3
         self._captura("P3 - ¿Cómo desea pagar?")
 
     def pagar_con_tarjeta(self, referencia):
@@ -339,7 +353,9 @@ class FlujoKiosko:
         def _resultado():
             r = self.pago.esperar_resultado(2)
             return r if r != "sin_resultado" else False
-        resultado = pedir_accion(instruccion, hasta=_resultado, timeout=timeout, evidencia=self.ev) or "sin_resultado"
+        resultado = pedir_tarjeta(instruccion, referencia=getattr(self.ev, "referencia", ""),
+                                  monto=getattr(self.ev, "monto", None), hasta=_resultado,
+                                  timeout=timeout, evidencia=self.ev) or "sin_resultado"
         self.pago.esperar_estable(1)
         self._captura(f"Resultado del cobro: {resultado}")
         return resultado

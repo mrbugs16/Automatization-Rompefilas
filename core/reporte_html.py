@@ -129,6 +129,12 @@ input[type=search]{flex:1;min-width:200px}
 .tag.estado{font-weight:650}
 .tag.modulo{background:var(--brand);color:var(--on-brand)}
 .tag.escenario{border:1px solid var(--line);background:transparent;color:var(--text)}
+.tag.msi{background:var(--brand-2);color:#1a1205;font-weight:650}
+.tag.ref{font-family:ui-monospace,Menlo,Consolas,monospace;border:1px solid var(--line);background:var(--panel-2);color:var(--text)}
+.tag.monto{background:var(--ok-bg);color:var(--ok);font-weight:650}
+.cobro{display:flex;flex-wrap:wrap;gap:6px 22px;margin-top:14px;padding:12px 14px;border:1px solid var(--line);border-left:4px solid var(--brand-2);border-radius:10px}
+.cobro span{display:block;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+.cobro b{font-weight:650;font-size:15px}
 
 .detalle{padding:4px 16px 18px;border-top:1px solid var(--line)}
 .detalle h4{margin:18px 0 6px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:650}
@@ -240,9 +246,10 @@ details.error pre{margin:0;padding:10px 12px;font:12px/1.45 ui-monospace,Menlo,C
     <div class="chips" id="chips"></div>
     <select id="fModulo" aria-label="Módulo"><option value="">Todos los módulos</option></select>
     <select id="fEscenario" aria-label="Escenario"><option value="">Todos los escenarios</option></select>
+    <select id="fPago" aria-label="Tipo de pago"><option value="">Todos los tipos de pago</option><option value="6 MSI">Solo 6 MSI</option><option value="normal">Sin 6 MSI</option></select>
     <select id="fTipo" aria-label="Tipo"><option value="">Todos los tipos de prueba</option></select>
     <select id="fPrioridad" aria-label="Prioridad"><option value="">Todas las prioridades</option></select>
-    <input type="search" id="fTexto" placeholder="Buscar por ID, caso, paso, pantalla o mensaje…">
+    <input type="search" id="fTexto" placeholder="Buscar por ID, caso, referencia, contribuyente, paso o mensaje…">
     <button class="btn" id="btnAbrir" type="button">Expandir todo</button>
     <button class="btn" id="btnCerrar" type="button">Contraer todo</button>
   </section>
@@ -275,6 +282,7 @@ const DESCRIPCION_ESTADO = {
 };
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const cls = s => String(s || '').replace(/\s+/g, '_');
+const money = n => '$' + Number(n).toLocaleString('es-MX', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 const dur = s => { s = Math.round(Number(s) || 0); if (s < 60) return s + ' s'; const m = Math.floor(s / 60); return m < 60 ? `${m} min ${s % 60} s` : `${Math.floor(m / 60)} h ${m % 60} min`; };
 const seg = h => { const p = String(h || '').split(':').map(Number); return p.length === 3 && p.every(n => !isNaN(n)) ? p[0]*3600 + p[1]*60 + p[2] : null; };
 const pasosPlan = t => String(t || '').split(/\r?\n/).map(l => l.replace(/^\s*\d+[.)-]\s*/, '').trim()).filter(Boolean);
@@ -332,7 +340,7 @@ const conFalla = D.casos.filter(c => c.estado === 'Fallido' || c.estado === 'Err
 if (conFalla.length) {
   $('bloqueAtencion').hidden = false;
   $('atencion').innerHTML = conFalla.map(c => `<a href="#${esc(c.id)}" data-abrir="${esc(c.id)}">
-    <span class="id mono">${esc(c.id)}</span><span>${esc(c.caso)}</span>
+    <span class="id mono">${esc(c.id)}</span><span>${esc(c.caso)}${c.referencia ? ` · <span class="mono">${esc(c.referencia)}</span>` : ''}${c.monto ? ` · ${money(c.monto)}` : ''}</span>
     <small>${esc(c.estado)} · ${esc(c.obtenido || 'Sin mensaje')}</small></a>`).join('');
 }
 
@@ -371,7 +379,7 @@ const llenar = (id, campo) => [...new Set(D.casos.map(c => c[campo]).filter(Bool
   .forEach(v => $(id).insertAdjacentHTML('beforeend', `<option>${esc(v)}</option>`));
 llenar('fModulo', 'modulo'); llenar('fTipo', 'tipo'); llenar('fPrioridad', 'prioridad');
 llenar('fEscenario', 'escenario');
-['fModulo','fEscenario','fTipo','fPrioridad','fTexto'].forEach(id => $(id).addEventListener('input', pintar));
+['fModulo','fEscenario','fPago','fTipo','fPrioridad','fTexto'].forEach(id => $(id).addEventListener('input', pintar));
 $('btnAbrir').onclick = () => document.querySelectorAll('.caso').forEach(d => d.open = true);
 $('btnCerrar').onclick = () => document.querySelectorAll('.caso').forEach(d => d.open = false);
 
@@ -416,6 +424,9 @@ function tarjeta(c) {
       <span class="tags">
         ${c.modulo ? `<span class="tag modulo">${esc(c.modulo)}</span>` : ''}
         ${c.escenario ? `<span class="tag escenario">${esc(c.escenario)}</span>` : ''}
+        ${c.tipo_pago === '6 MSI' ? '<span class="tag msi" title="Pago a 6 meses sin intereses (desde $1,000)">6 MSI</span>' : ''}
+        ${c.referencia ? `<span class="tag ref" title="Referencia usada">${esc(c.referencia)}</span>` : ''}
+        ${c.monto ? `<span class="tag monto" title="Monto cobrado">${money(c.monto)}</span>` : ''}
         ${c.tipo ? `<span class="tag">${esc(c.tipo)}</span>` : ''}${c.prioridad ? `<span class="tag">${esc(c.prioridad)}</span>` : ''}
         ${c.duracion ? `<span class="tag">${dur(c.duracion)}</span>` : ''}
         <span class="tag estado estado-${cls(c.estado)}" title="${esc(DESCRIPCION_ESTADO[c.estado])}">${esc(c.estado)}</span>
@@ -423,6 +434,12 @@ function tarjeta(c) {
     </summary>
     <div class="detalle">
       ${ficha.length ? `<div class="ficha">${ficha.map(([k, v]) => `<div><span>${k}</span><b>${esc(v)}</b></div>`).join('')}</div>` : ''}
+      ${c.referencia || c.monto ? `<div class="cobro">
+        <div><span>Referencia</span><b class="mono">${esc(c.referencia) || '—'}</b></div>
+        <div><span>Monto</span><b>${c.monto ? money(c.monto) : '—'}</b></div>
+        ${c.contribuyente ? `<div><span>Contribuyente</span><b>${esc(c.contribuyente)}</b></div>` : ''}
+        ${c.tipo_pago === '6 MSI' && c.monto ? `<div><span>Mensualidad a 6 MSI</span><b>${money(c.monto / 6)}</b></div>` : ''}
+      </div>` : ''}
       ${c.descripcion ? `<h4>Descripción</h4><p>${esc(c.descripcion)}</p>` : ''}
       ${c.precondiciones ? `<h4>Precondiciones</h4><p>${esc(c.precondiciones)}</p>` : ''}
       <h4>Resultado</h4>
@@ -449,12 +466,13 @@ function tarjeta(c) {
 
 let visibles = [];
 function pintar() {
-  const m = fModulo.value, e = fEscenario.value, t = fTipo.value, p = fPrioridad.value, q = fTexto.value.trim().toLowerCase();
+  const m = fModulo.value, e = fEscenario.value, tp = fPago.value, t = fTipo.value, p = fPrioridad.value, q = fTexto.value.trim().toLowerCase();
   const abiertos = new Set([...document.querySelectorAll('.caso[open]')].map(d => d.id));
   visibles = D.casos.filter(c =>
     (!filtroEstado || c.estado === filtroEstado) && (!m || c.modulo === m) && (!e || c.escenario === e) && (!t || c.tipo === t) &&
+    (!tp || (tp === '6 MSI' ? c.tipo_pago === '6 MSI' : c.tipo_pago !== '6 MSI')) &&
     (!p || c.prioridad === p) &&
-    (!q || [c.id, c.caso, c.modulo, c.escenario, c.obtenido, c.error, c.pasos, c.datos,
+    (!q || [c.id, c.caso, c.modulo, c.escenario, c.referencia, c.contribuyente, c.tipo_pago, c.obtenido, c.error, c.pasos, c.datos,
             ...(c.pasos_evidencia || []).map(x => `${x.descripcion} ${x.pantalla || ''}`)].join(' ').toLowerCase().includes(q)));
   $('contador').textContent = `Mostrando ${visibles.length} de ${total} casos`;
   $('lista').innerHTML = visibles.map(tarjeta).join('') || '<p class="vacio">Sin resultados con esos filtros.</p>';
@@ -476,7 +494,7 @@ $('lista').addEventListener('click', ev => {
 /* ---------- Abrir caso por enlace (#CP-XX-ROM-xxx) ---------- */
 function abrirCaso(id) {
   let d = document.getElementById(id);
-  if (!d) { fijarEstado(''); ['fModulo','fEscenario','fTipo','fPrioridad','fTexto'].forEach(x => $(x).value = ''); pintar(); d = document.getElementById(id); }
+  if (!d) { fijarEstado(''); ['fModulo','fEscenario','fPago','fTipo','fPrioridad','fTexto'].forEach(x => $(x).value = ''); pintar(); d = document.getElementById(id); }
   if (d) { d.open = true; d.scrollIntoView({behavior: 'smooth', block: 'start'}); }
 }
 document.addEventListener('click', ev => { const a = ev.target.closest('[data-abrir]'); if (a) { ev.preventDefault(); history.replaceState(null, '', '#' + a.dataset.abrir); abrirCaso(a.dataset.abrir); } });

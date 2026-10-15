@@ -1,21 +1,14 @@
 """Datos de prueba y textos exactos que muestra Rompefilas v1.6.36."""
-import json
+from core import referencias
 
-from config import settings
+_DATOS = referencias.cargar()
 
-
-def _referencias():
-    with open(settings.REFERENCIAS_JSON, encoding="utf-8") as f:
-        return json.load(f)
-
-
-REFERENCIAS = _referencias()
-REF_VALIDA = REFERENCIAS["valida"]
-CUENTA_PREDIAL = REFERENCIAS["cuenta_predial"]
-REF_CORTA = REFERENCIAS["corta"]
-REF_INEXISTENTE = REFERENCIAS["inexistente"]
-REF_INEXISTENTE_2 = REFERENCIAS["inexistente_2"]
-REF_PAGADAS = REFERENCIAS.get("pagadas", [])
+# Referencia 'disponible' vigente (se resuelve en cada acceso: tras un pago aprobado ya es otra)
+REF_VALIDA = referencias.ReferenciaActual()
+CUENTA_PREDIAL = _DATOS["cuenta_predial"]
+REF_CORTA = _DATOS["corta"]
+REF_INEXISTENTE = _DATOS["inexistente"]
+REF_INEXISTENTE_2 = _DATOS["inexistente_2"]
 
 MSG_SIN_ADEUDOS = "No se encontraron adeudos"
 MSG_APP_PAGO = "No se pudo comunicar con la aplicación de pago"

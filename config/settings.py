@@ -61,6 +61,8 @@ MIN_TOQUE_DP = int(os.getenv("MIN_TOQUE_DP", "48"))
 # true  : la suite lleva la app hasta el punto y espera a que el tester haga la acción en la T6
 INTERACTIVO = _bool("INTERACTIVO")
 TIMEOUT_INTERACCION = int(os.getenv("TIMEOUT_INTERACCION", "120"))
+# Tiempo para insertar/deslizar/acercar la tarjeta y capturar el NIP (nunca menos de 120 s)
+TIMEOUT_TARJETA = max(120, int(os.getenv("TIMEOUT_TARJETA", "150")))
 
 # ==============================================
 # DATOS Y EVIDENCIA
@@ -70,4 +72,11 @@ MATRIZ_XLSX = DIR_DATOS / "RompeFilas.xlsx"
 HOJA_MATRIZ = "Matriz Casos de Prueba Puebla"
 FILA_ENCABEZADOS = 10
 REFERENCIAS_JSON = DIR_DATOS / "referencias.json"
+REFERENCIAS_TXT = DIR_DATOS / "referencias.txt"
+
+# ==============================================
+# 6 MESES SIN INTERESES
+# ==============================================
+MSI_MONTO_MINIMO = float(os.getenv("MSI_MONTO_MINIMO", "1000"))
+MSI_PLAZO = 6
 DIR_EVIDENCIAS = RAIZ / "evidencias"

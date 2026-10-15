@@ -19,12 +19,12 @@ pytestmark = [pytest.mark.tarjeta]
     caso="Happy path: referencia válida → adeudos → tarjeta → recibo",
     producto="Rompefilas", modulo="General", escenario="Transacciones", tipo="Funcional", prioridad="Alta",
     precondiciones="App Rompefilas abierta en la T6 en la pantalla de inicio.",
-    datos=f"Referencia {REF_VALIDA['referencia']} · Total {REF_VALIDA['total']}",
+    datos="Primera referencia 'disponible' de data/referencias.json (se marca 'pagada' al aprobarse)",
     pasos="Tocar 'Toque para iniciar'\nCapturar la referencia de 16 dígitos\nConsultar adeudos\n"
           "Pagar ahora\nElegir 'Tarjeta – Débito o crédito'\nPresentar la tarjeta en la T6\nVerificar el recibo (P5)",
     esperado="Se invoca el módulo de pago de la T6 con el total, el pago se aprueba y se muestra el recibo con autorización.",
 )
-def test_HP_ROM_001_happy_path(flujo, evidencia, registrar_app_pago):
+def test_HP_ROM_001_happy_path(flujo, evidencia, registrar_app_pago, marcar_pagada):
     # P1 -> P2
     flujo.ir_a_adeudos(REF_VALIDA["referencia"])
     contribuyente = flujo.adeudos.contribuyente()
@@ -53,10 +53,9 @@ def test_HP_ROM_001_happy_path(flujo, evidencia, registrar_app_pago):
 
     # P4 -> P5 (requiere presentar la tarjeta)
     requiere_tester("Módulo de pago abierto: falta presentar la tarjeta física")
-    resultado = flujo.esperar_tarjeta_del_tester(
-        f"Presente una tarjeta CON FONDOS por {REF_VALIDA['total']} (chip, banda o contactless) y capture el NIP si se pide.")
+    resultado = flujo.esperar_tarjeta_del_tester("Presente una tarjeta CON FONDOS (chip, banda o contactless).")
     assert resultado == "aprobado", f"El cobro terminó en '{resultado}'"
+    marcar_pagada()
     autorizacion = flujo.recibo.autorizacion()
     evidencia.nota(f"Autorización: {autorizacion or '(no se encontró en pantalla)'}")
     assert autorizacion, "El recibo no muestra el número de autorización"
-    evidencia.nota("⚠ (Manual) Mover la referencia a 'pagadas' en data/referencias.json y registrar una nueva 'valida'")

@@ -5,8 +5,8 @@ MÓDULO 09 - INTEGRIDAD DE COBRO
 import pytest
 
 from config import locators as L
-from config.datos_prueba import REF_PAGADAS, REF_VALIDA
-from core import adb
+from config.datos_prueba import MSG_SIN_ADEUDOS, REF_VALIDA
+from core import adb, referencias
 from core.marcadores import bloqueado, caso, manual, pendiente
 
 
@@ -56,10 +56,14 @@ def test_CP_IC_ROM_002_doble_toque(flujo, evidencia, registrar_app_pago):
 
 @caso("CP-IC-ROM-003")
 def test_CP_IC_ROM_003_referencia_ya_pagada(flujo, evidencia):
-    if not REF_PAGADAS:
-        pendiente("Sin referencias pagadas en data/referencias.json -> 'pagadas' (se agregan tras un pago aprobado)")
+    pagadas = referencias.pagadas()
+    if not pagadas:
+        pendiente("Sin referencias 'pagada' en data/referencias.json (la suite las marca sola tras un pago aprobado)")
+    pagada = pagadas[-1]
+    evidencia.nota(f"Referencia repetida: {pagada['referencia']} pagada el {pagada.get('fecha_pago', '?')} "
+                   f"en {pagada.get('pagada_en', '?')} (total original ${pagada.get('monto') or 0:,.2f})")
     flujo.iniciar()
-    flujo.capturar_referencia(REF_PAGADAS[-1])
+    flujo.capturar_referencia(pagada["referencia"])
     resultado = flujo.consultar()
     flujo._captura(f"Consulta de la referencia pagada: {resultado}")
     if resultado == "p2":
@@ -68,4 +72,4 @@ def test_CP_IC_ROM_003_referencia_ya_pagada(flujo, evidencia):
         assert not flujo.adeudos.existe(L.P2_BTN_PAGAR, 1) or not pendientes, \
             "La referencia ya pagada sigue mostrando adeudos pendientes para cobrar"
     else:
-        assert resultado == "sin_adeudos", f"Respuesta inesperada al consultar la referencia pagada: {resultado}"
+        assert resultado == "sin_adeudos", f"Se esperaba '{MSG_SIN_ADEUDOS}' o adeudos pagados (resultado: {resultado})"

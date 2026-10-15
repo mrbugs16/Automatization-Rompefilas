@@ -2,8 +2,8 @@
 
 Pruebas E2E del **Kiosko de Pagos Rompefilas** (`com.exos.kiosko.rompefilas`) en la terminal **T6** (Android 13)
 con **Python + Appium (UiAutomator2) + pytest**.
-Cubre los 66 casos de `data/RompeFilas.xlsx` más el happy path, y genera evidencia en cada ejecución
-(capturas + reporte HTML con filtros + copia de la matriz con resultados).
+Cubre los 72 casos de `data/RompeFilas.xlsx` (66 + 6 de **6 MSI**) más el happy path, y genera evidencia en cada
+ejecución (capturas + reporte HTML con filtros, referencia y monto por caso + copia de la matriz con resultados).
 
 Bases reutilizadas:
 
@@ -38,7 +38,7 @@ así que todo se localiza por texto (`config/locators.py`).
 config/
   settings.py        Appium/T6, tiempos de negocio, modo interactivo (todo sobrescribible por variables de entorno)
   locators.py        Localizadores por pantalla (los 'TODO confirmar' son pantallas que aún no existen)
-  datos_prueba.py    Referencias de prueba y textos esperados
+  datos_prueba.py    Datos de prueba y textos esperados (REF_VALIDA = referencia 'disponible' vigente)
 core/
   driver_factory.py  Sesión de Appium + reinicio de la app entre casos
   adb.py             Red, batería simulada, foco de ventana, reinicio, logcat, screencap
@@ -46,14 +46,19 @@ core/
   interaccion.py     Pausas guiadas para el tester (INTERACTIVO=true)
   marcadores.py      @caso, @manual, @interactiva, pendiente(), bloqueado(), requiere_tester()
   matriz.py          Lee la matriz y escribe la copia con resultados
+  xlsx.py            Guarda el Excel conservando las gráficas del Dashboard
+  referencias.py     Catálogo de referencias (disponible / pagada / sin_adeudos)
   reporte_html.py    Reporte HTML con filtros
 pages/
   base_page.py       Esperas, toques, lectura de textos/recuadros desde el XML
   kiosko_pages.py    Inicio, P1…P5, modal de inactividad y FlujoKiosko
 data/
-  RompeFilas.xlsx    Matriz de pruebas
-  referencias.json   Referencias de QA (válida, inexistentes, pagadas)
-tests/               Un archivo por módulo de la matriz
+  RompeFilas.xlsx    Matriz de pruebas (filas 77-82: casos de 6 MSI)
+  referencias.txt    Referencias de QA, una por línea (fuente)
+  referencias.json   Catálogo: contribuyente, adeudos, total y estado de cada referencia
+tools/
+  catalogar_referencias.py  Consulta en la T6 las referencias nuevas y llena el catálogo
+tests/               Un archivo por módulo de la matriz (test_11_msi.py: 6 MSI)
 evidencias/<fecha_hora>/  reporte.html · resultados.json · matriz_resultados.xlsx · capturas/<CP-ID>/*.png
 ```
 
@@ -82,6 +87,8 @@ python -m pytest tests/test_01_identificacion.py         # un módulo
 python -m pytest -k CP_ID_ROM_004                        # un caso
 python -m pytest -m "not red"                            # sin cortar Wi-Fi/datos de la T6
 python -m pytest --incluir-reinicio -k CP_IN_ROM_001     # arranque automático (reinicia la T6)
+python -m pytest -m msi --abrir-reporte                  # solo los casos de 6 MSI
+python -m pytest -m "not msi"                            # todo menos 6 MSI
 ```
 
 En PowerShell, el modo interactivo (la suite lleva la app al punto y espera a que el tester presente la
@@ -100,9 +107,47 @@ $env:INTERACTIVO = "true"; python -m pytest --abrir-reporte
 | `APPIUM_URL` | URL del server | `http://127.0.0.1:4723` |
 | `TIMEOUT_INACTIVIDAD` | segundos máx. para ver '¿Sigue ahí?' | `180` |
 | `TIMEOUT_TARJETA_SIN_ACCION` | segundos máx. para el timeout de lectura (CP-TJ-ROM-003) | `90` |
-| `TIMEOUT_INTERACCION` | segundos que se espera al tester | `120` |
+| `TIMEOUT_INTERACCION` | segundos que se espera al tester (recibo, papel) | `120` |
+| `TIMEOUT_TARJETA` | segundos para insertar la tarjeta y capturar el NIP (mínimo 120) | `150` |
+| `MSI_MONTO_MINIMO` | monto desde el que aplica 6 MSI | `1000` |
 | `TIEMPO_MAX_ATENCION` | objetivo de CP-ES-ROM-002 | `90` |
 | `MIN_TOQUE_DP` | área táctil mínima (CP-HW-ROM-006) | `48` |
+
+---
+
+## Referencias de prueba
+
+`data/referencias.txt` tiene las referencias de QA (una por línea). Para agregar nuevas, se pegan ahí y se corre:
+
+```bash
+python -m tools.catalogar_referencias
+```
+
+La herramienta consulta cada referencia nueva en la T6 y guarda en `data/referencias.json` el contribuyente,
+los adeudos y el total. Estados:
+
+| Estado | Uso |
+|---|---|
+| `disponible` | Referencia **nueva**: la toman los casos que consultan o cobran (siempre la primera disponible) |
+| `pagada` | Se marca sola cuando un pago se aprueba; la usa CP-IC-ROM-003 (**referencia repetida**) |
+| `sin_adeudos` | La consulta no regresó adeudos |
+| `sin_consultar` | Importada del .txt, falta catalogarla |
+
+Los casos de 6 MSI eligen la referencia por monto (≥ $1,000 o < $1,000). El reporte HTML muestra en cada caso
+la referencia, el contribuyente y el monto cobrado, y la matriz de resultados los agrega en *Observaciones*.
+
+## Cobro con tarjeta (INTERACTIVO=true)
+
+Al llegar al módulo de pago, la terminal muestra la indicación con la referencia y el monto, suena la campana
+y da **al menos 120 s** (`TIMEOUT_TARJETA`, default 150 s) para insertar/deslizar/acercar la tarjeta y capturar
+el NIP, recordando el tiempo restante cada 10 s. La suite detecta el resultado sola.
+
+## 6 meses sin intereses (CP-MSI-ROM-001 a 006)
+
+Aplica a transacciones **desde $1,000.00**. El plan lo ofrece el módulo de pago, así que se **valida a mano**:
+la suite elige la referencia por monto, verifica que P3 cobre ese total, calcula la mensualidad (total / 6) y deja
+el cobro listo; el caso termina como *Manual* con la lista de lo que hay que confirmar. En el reporte llevan la
+etiqueta **6 MSI** y se pueden separar con el filtro *Tipo de pago*.
 
 ---
 
@@ -148,4 +193,4 @@ Los casos que dependen de ellas **se activan solos** cuando la app las muestre:
 1. Correr `python -m pytest -k HP_ROM_001` y revisar el XML de la pantalla en `capturas/HP-ROM-001/*.xml`.
 2. Ajustar los localizadores `TODO confirmar` con los textos reales.
 3. Correr con `INTERACTIVO=true` los casos de tarjeta e impresión.
-4. Tras un pago aprobado, mover la referencia a `pagadas` en `data/referencias.json` y registrar una nueva `valida`.
+4. Si se acaban las referencias `disponible`, agregar más a `data/referencias.txt` y correr `python -m tools.catalogar_referencias`.
