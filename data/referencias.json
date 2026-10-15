@@ -184,7 +184,7 @@
     },
     {
       "referencia": "1009901041383101",
-      "estado": "disponible",
+      "estado": "pagada",
       "contribuyente": "ISRAEL RODRIGO ARTURO . SORIA IRIZAR",
       "adeudos": 4,
       "monto": 4319.24,
@@ -194,11 +194,13 @@
         "APROVECHAMIENTOS POR RECARGOS S/DERECHOS LIMPIA $150.76",
         "LIMPIA INMUEBLES HABITACIONAL $1,225.00"
       ],
-      "consultada": "15/10/2026 10:26"
+      "consultada": "15/10/2026 10:26",
+      "pagada_en": "CP-ES-ROM-002",
+      "fecha_pago": "15/10/2026 17:22"
     },
     {
       "referencia": "1009901014277701",
-      "estado": "disponible",
+      "estado": "pagada",
       "contribuyente": "AZMITIA GUTIERREZ ISRAEL . . .",
       "adeudos": 2,
       "monto": 1436.88,
@@ -206,11 +208,13 @@
         "PREDIAL URBANO $1,010.88",
         "LIMPIA INMUEBLES HABITACIONAL $426.00"
       ],
-      "consultada": "15/10/2026 10:27"
+      "consultada": "15/10/2026 10:27",
+      "pagada_en": "CP-SG-ROM-003",
+      "fecha_pago": "15/10/2026 17:25"
     },
     {
       "referencia": "1009901042626901",
-      "estado": "disponible",
+      "estado": "pagada",
       "contribuyente": "ISRAEL . MUÑOZ OLMOS",
       "adeudos": 4,
       "monto": 5036.74,
@@ -220,11 +224,13 @@
         "APROVECHAMIENTOS POR RECARGOS S/DERECHOS LIMPIA $150.76",
         "LIMPIA INMUEBLES HABITACIONAL $1,225.00"
       ],
-      "consultada": "15/10/2026 10:27"
+      "consultada": "15/10/2026 10:27",
+      "pagada_en": "CP-HW-ROM-003",
+      "fecha_pago": "15/10/2026 17:29"
     },
     {
       "referencia": "1009901046008901",
-      "estado": "disponible",
+      "estado": "pagada",
       "contribuyente": "ISRAEL . GARCIA ROMERO",
       "adeudos": 4,
       "monto": 21058.93,
@@ -234,11 +240,13 @@
         "APROVECHAMIENTOS POR RECARGOS S/DERECHOS LIMPIA $1,172.99",
         "LIMPIA INMUEBLES HABITACIONAL $10,382.64"
       ],
-      "consultada": "15/10/2026 10:28"
+      "consultada": "15/10/2026 10:28",
+      "pagada_en": "CP-CC-ROM-004",
+      "fecha_pago": "15/10/2026 17:36"
     },
     {
       "referencia": "1009901045838301",
-      "estado": "disponible",
+      "estado": "pagada",
       "contribuyente": "EDGAR ISRAEL MARTINEZ VALENZUELA",
       "adeudos": 4,
       "monto": 10570.91,
@@ -248,7 +256,9 @@
         "APROVECHAMIENTOS POR RECARGOS S/DERECHOS LIMPIA $481.36",
         "LIMPIA INMUEBLES HABITACIONAL $3,228.26"
       ],
-      "consultada": "15/10/2026 10:28"
+      "consultada": "15/10/2026 10:28",
+      "pagada_en": "CP-CC-ROM-006",
+      "fecha_pago": "15/10/2026 17:37"
     },
     {
       "referencia": "1009901042827701",

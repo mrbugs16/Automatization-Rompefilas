@@ -28,6 +28,14 @@ def _luhn(numero):
     return total % 10 == 0
 
 
+def _parece_tarjeta(numero):
+    """Luhn + prefijo de marca real (Visa 4, Mastercard 51-55 / 2221-2720, Amex 34/37). Sin el prefijo, IDs y
+    timestamps del logcat pasan Luhn por casualidad (~10 %) y daban falsos positivos."""
+    prefijo_ok = (numero[0] == "4" or 51 <= int(numero[:2]) <= 55 or 2221 <= int(numero[:4]) <= 2720
+                  or numero[:2] in ("34", "37"))
+    return prefijo_ok and _luhn(numero)
+
+
 def _tarjeta_aprobada(flujo, instruccion, evidencia, tipo=""):
     flujo.exigir_pinpad_real(instruccion)
     resultado = flujo.esperar_tarjeta_del_tester(instruccion)
@@ -163,12 +171,12 @@ def test_CP_SG_ROM_001_datos_de_tarjeta_enmascarados(flujo, evidencia, pago_apro
     datos = flujo.recibo.datos()
     evidencia.nota(f"Comprobante: {datos}")
     textos = flujo.recibo.textos()
-    completos = [t for t in textos for n in re.findall(r"\d{13,19}", t.replace(" ", "")) if _luhn(n)]
+    completos = [t for t in textos for n in re.findall(r"\d{13,19}", t.replace(" ", "")) if _parece_tarjeta(n)]
     assert not completos, f"P5 muestra un número de tarjeta completo: {completos}"
     assert re.search(r"\*{4}\d{4}$", datos.get("Tarjeta", "")), \
         f"La tarjeta no se muestra enmascarada con los últimos 4 dígitos: '{datos.get('Tarjeta', '')}'"
-    en_logs = sorted({n for l in adb.logcat() for n in re.findall(r"(?<!\d)\d{13,19}(?!\d)", l) if _luhn(n)})
-    evidencia.nota(f"Números con formato de tarjeta (Luhn) en logcat: {len(en_logs)}")
+    en_logs = sorted({n for l in adb.logcat() for n in re.findall(r"(?<!\d)\d{13,19}(?!\d)", l) if _parece_tarjeta(n)})
+    evidencia.nota(f"Números con formato de tarjeta (prefijo de marca + Luhn) en logcat: {len(en_logs)}")
     assert not en_logs, f"El logcat contiene números de tarjeta completos: {[n[:6] + '…' + n[-4:] for n in en_logs]}"
     evidencia.nota("⚠ (Manual) Revisar el ticket impreso: solo los últimos 4 dígitos")
 
