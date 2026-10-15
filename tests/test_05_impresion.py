@@ -2,7 +2,8 @@
 MÓDULO 05 - IMPRESIÓN Y RECIBO (P5, impresora térmica de la T6)
 · CP-RC-ROM-001 a CP-RC-ROM-009, CP-HW-ROM-007, CP-HW-ROM-008
 
-Casi todos requieren un pago aprobado ('pago_aprobado'): hoy quedan Bloqueados por el módulo de pago.
+Casi todos requieren un pago aprobado ('pago_aprobado'): con el simulador de Memphis (v1.6.37) se toca
+'Approved' y corren desatendidos (cada uno usa una referencia del catálogo).
 El contenido del ticket físico (folio, voucher, acentos, QR) se revisa a mano.
 """
 import time
@@ -21,7 +22,7 @@ def _sesion_limpia(flujo):
     """Tras regresar al inicio no debe quedar nada del contribuyente anterior."""
     flujo.iniciar()
     textos = flujo.identificacion.textos()
-    assert REF_VALIDA["contribuyente"] not in textos, "Quedó visible el nombre del contribuyente anterior"
+    assert flujo.ev.contribuyente not in textos, "Quedó visible el nombre del contribuyente anterior"
     assert flujo.identificacion.referencia() == L.P1_PLACEHOLDER, \
         f"Quedó capturada la referencia anterior: '{flujo.identificacion.referencia()}'"
 
@@ -45,9 +46,9 @@ def test_CP_RC_ROM_002_voucher_tarjeta():
 
 @caso("CP-RC-ROM-003")
 def test_CP_RC_ROM_003_sin_papel_pago_realizado(flujo, evidencia, pantalla_cobro):
-    requiere_tester("Requiere abrir la tapa / retirar el papel y presentar una tarjeta con fondos")
+    requiere_tester("Requiere abrir la tapa de la impresora / retirar el papel")
     pedir_accion("ABRA la tapa de la impresora o RETIRE el rollo de papel (la suite continúa sola).", timeout=20, evidencia=evidencia)
-    resultado = flujo.esperar_tarjeta_del_tester(f"Presente una tarjeta CON FONDOS por {REF_VALIDA['total']}.")
+    resultado = flujo.completar_cobro("aprobado", "Presente una tarjeta CON FONDOS.")
     assert resultado == "aprobado", f"Requiere un pago aprobado y el cobro terminó en '{resultado}'"
     assert flujo.recibo.existe(L.AVISO_SIN_PAPEL, 10), "No se mostró el aviso de falta de papel"
     evidencia.captura("Aviso de falta de papel con el pago aprobado")
@@ -114,11 +115,13 @@ def test_CP_RC_ROM_006_limite_de_reimpresion(flujo, evidencia, pago_aprobado):
 
 @caso("CP-RC-ROM-007")
 def test_CP_RC_ROM_007_sin_estados_redundantes(flujo, evidencia, pago_aprobado):
+    # La transición (antes del comprobante) se revisa en FlujoKiosko._despues_del_cobro
     textos = flujo.recibo.textos()
     exitoso = [t for t in textos if "Pago exitoso" in t]
-    evidencia.nota(f"Textos de estado en el recibo: {[t for t in textos if 'Pago' in t]}")
-    assert not flujo.recibo.existe(L.P5_PAGO_PROCESADO, 1), "Se muestra 'Pago procesado' además de 'Pago exitoso'"
-    assert len(exitoso) == 1, f"'Pago exitoso' aparece {len(exitoso)} veces"
+    evidencia.nota(f"Textos de estado en el comprobante: {[t for t in textos if 'Pago' in t or 'procesado' in t]}")
+    assert not flujo.estados_redundantes,         "Al regresar del módulo de pago se muestran 'Pago exitoso' y 'Pago procesado' al mismo tiempo (pantalla intermedia)"
+    assert not flujo.recibo.existe(L.P5_PAGO_PROCESADO, 1), "El comprobante muestra 'Pago procesado' además de 'Pago exitoso'"
+    assert len(exitoso) == 1, f"'Pago exitoso' aparece {len(exitoso)} veces en el comprobante"
 
 
 @caso("CP-RC-ROM-008")

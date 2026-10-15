@@ -17,7 +17,7 @@ from config.datos_prueba import MSG_APP_PAGO
 from core import adb, referencias
 from core.driver_factory import crear_driver, reiniciar_app, sesion_viva
 from core.evidencia import Evidencia
-from core.marcadores import PREFIJO_MANUAL, PREFIJO_PENDIENTE, bloqueado, pendiente, requiere_tester
+from core.marcadores import PREFIJO_MANUAL, PREFIJO_PENDIENTE, bloqueado, pendiente
 from core.matriz import cargar_matriz, escribir_resultados
 from core.reporte_html import generar_reporte
 from pages.kiosko_pages import FlujoKiosko
@@ -120,22 +120,12 @@ def pantalla_cobro(cobro):
 
 
 @pytest.fixture
-def marcar_pagada(evidencia):
-    """Tras un pago aprobado, la referencia pasa a 'pagada' (ya no es nueva; sirve para 'referencia repetida')."""
-    def _marcar():
-        if evidencia.referencia:
-            referencias.marcar_pagada(evidencia.referencia, evidencia.caso_id)
-    return _marcar
-
-
-@pytest.fixture
-def pago_aprobado(pantalla_cobro, flujo, marcar_pagada):
-    """Precondición 'pago aprobado': el tester presenta una tarjeta con fondos (INTERACTIVO=true)."""
-    requiere_tester("Requiere un pago aprobado con tarjeta física")
-    resultado = flujo.esperar_tarjeta_del_tester("Presente una tarjeta CON FONDOS (débito o crédito).")
+def pago_aprobado(pantalla_cobro, flujo):
+    """Precondición 'pago aprobado'. Con el simulador de Memphis se toca 'Approved' (sin tester); con pinpad real
+    el tester presenta una tarjeta con fondos (INTERACTIVO=true). La referencia queda 'pagada' (FlujoKiosko)."""
+    resultado = flujo.completar_cobro("aprobado", "Presente una tarjeta CON FONDOS (débito o crédito).")
     if resultado != "aprobado":
         bloqueado(f"Requiere un pago aprobado y el cobro terminó en '{resultado}'")
-    marcar_pagada()
     return resultado
 
 

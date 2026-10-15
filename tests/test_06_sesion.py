@@ -9,7 +9,7 @@ import pytest
 from config import locators as L
 from config import settings
 from config.datos_prueba import REF_VALIDA
-from core.marcadores import bloqueado, caso
+from core.marcadores import caso
 
 
 def _sin_datos_del_contribuyente(flujo, evidencia, momento):
@@ -18,7 +18,8 @@ def _sin_datos_del_contribuyente(flujo, evidencia, momento):
     flujo._captura(f"Nueva atención después de {momento}")
     p1 = flujo.identificacion
     textos = p1.textos()
-    restos = [t for t in textos if t == REF_VALIDA["contribuyente"] or t.startswith("$") or REF_VALIDA["referencia"] in t]
+    # Datos del contribuyente atendido (no REF_VALIDA: tras un pago ya apunta a la siguiente referencia)
+    restos = [t for t in textos if t == evidencia.contribuyente or t.startswith("$") or evidencia.referencia in t]
     assert not restos, f"Después de {momento} siguen visibles datos del contribuyente anterior: {restos}"
     assert p1.referencia() == L.P1_PLACEHOLDER, f"Después de {momento} quedó la referencia '{p1.referencia()}' en el campo"
 
@@ -67,10 +68,10 @@ def test_CP_SG_ROM_003_limpieza_entre_atenciones(flujo, evidencia, request):
     assert flujo.inicio.visible(), "'Regresar al inicio' no regresó al inicio"
     _sin_datos_del_contribuyente(flujo, evidencia, "'Regresar al inicio'")
 
-    # La precondición de la matriz es un pago completado del contribuyente A
-    if not settings.INTERACTIVO:
-        bloqueado("Validación parcial OK (salida con 'Cancelar y salir' y 'Regresar al inicio'); "
-                  "falta validar después de un pago completado (requiere tarjeta)")
+    # La precondición de la matriz es un pago completado del contribuyente A (simulador: 'Approved')
+    flujo.identificacion.regresar_al_inicio()
+    assert flujo.inicio.visible(), "'Regresar al inicio' no regresó al inicio"
     request.getfixturevalue("pago_aprobado")
+    evidencia.nota(f"Pago completado del contribuyente A: {evidencia.contribuyente} · ref {evidencia.referencia}")
     assert flujo.inicio.visible(60), "No regresó al inicio después del pago"
     _sin_datos_del_contribuyente(flujo, evidencia, "un pago completado")

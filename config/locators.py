@@ -109,9 +109,15 @@ P4_ERROR_TITULO = texto("No se pudo procesar el pago")
 P4_ERROR_APP_PAGO = contiene("No se pudo comunicar con la aplicación de pago")
 P4_ERROR_SIN_CARGO = contiene("No se realizó ningún cargo")
 P4_ERROR_SUGERENCIA_EFECTIVO = contiene("pagar en efectivo")
+P4_RECHAZO_SIMULADO = contiene("Declined by issuer")
 P4_BTN_INTENTAR = boton("Intentar de nuevo")
 P4_BTN_REGRESAR_INICIO = boton("Regresar al inicio")
-# TODO confirmar con la nueva versión (pantalla del módulo de pago y sus mensajes)
+# v1.6.37: tras aprobar, P3 muestra 'Pago exitoso' + 'Pago procesado' y redirige al comprobante en 5 s
+P4_PAGO_EXITOSO = texto("Pago exitoso")
+P4_PAGO_PROCESADO = texto("Pago procesado")
+P4_REDIRIGIENDO = contiene("Redirigiendo a su comprobante")
+P4_BTN_VER_COMPROBANTE = boton("Ver comprobante ahora")
+# Pinpad real: TODO confirmar cuando se integre la animación de tarjeta / NIP
 P4_INSTRUCCION_TARJETA = _cualquiera("Inserte", "inserte", "Deslice", "Acerque", "acerque")
 P4_TIEMPO_AGOTADO = _cualquiera("Tiempo agotado", "tiempo de espera", "Tiempo de espera")
 P4_NIP_INCORRECTO = _cualquiera("NIP incorrecto", "PIN incorrecto")
@@ -119,15 +125,25 @@ P4_TARJETA_NO_ACEPTADA = _cualquiera("no aceptada", "no soportada", "vencida")
 P4_BTN_CANCELAR_COBRO = (X, '//*[@text="Cancelar" or @text="CANCELAR" or @content-desc="Cancelar"]')
 P4_SIN_CONEXION_TERMINAL = contiene("No se pudo conectar con la terminal")
 
+# Simulador de pinpad de Memphis (v1.6.37): solo permite elegir el resultado
+SIM_PAQUETE = "com.memphis.pinpadsimulator"
+SIM_ESTADO = (AppiumBy.ID, "com.memphis.pinpadsimulator:id/tv_state")
+SIM_BTN_APROBAR = (AppiumBy.ID, "com.memphis.pinpadsimulator:id/btn_approved")
+SIM_BTN_DECLINAR = (AppiumBy.ID, "com.memphis.pinpadsimulator:id/btn_declined")
+
 # ==============================================
-# P5 - RECIBO (TODO confirmar con la nueva versión)
+# P5 - COMPROBANTE (v1.6.37)
 # ==============================================
-P5_PAGO_EXITOSO = _cualquiera("Pago exitoso", "Pago aprobado")
-P5_PAGO_PROCESADO = contiene("Pago procesado")
-P5_AUTORIZACION = _cualquiera("Autorización", "autorización")
-P5_BTN_REIMPRIMIR = _cualquiera("Reimprimir", "Imprimir")
+P5_TITULO = texto("¡Pago exitoso!")
+P5_PAGO_EXITOSO = _cualquiera("Pago exitoso", "Pago aprobado")  # transición en P3 o comprobante
+P5_PAGO_PROCESADO = P4_PAGO_PROCESADO
+P5_FOLIO = contiene("CONF-")
+P5_BTN_REIMPRIMIR = boton("Imprimir comprobante")
+P5_BTN_INICIO = boton("Inicio")
 P5_LIMITE_IMPRESIONES = contiene("Límite de impresiones")
-P5_CUENTA_REGRESIVA = _cualquiera("Regresando al inicio", "regresará al inicio")
+P5_CUENTA_REGRESIVA = contiene("Regresando al inicio en")
+# Etiquetas del comprobante (el valor es el texto siguiente)
+P5_CAMPOS = ("Nombre", "Referencia", "Autorización", "Tarjeta", "Fecha", "Estado")
 
 # ==============================================
 # AVISOS (TODO confirmar: no existen en v1.6.36)

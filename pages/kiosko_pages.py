@@ -10,7 +10,9 @@ from selenium.common.exceptions import TimeoutException
 
 from config import locators as L
 from config import settings
+from core import referencias
 from core.interaccion import pedir_tarjeta
+from core.marcadores import SIN_ANIMACION_TARJETA, pendiente, requiere_tester
 from pages.base_page import BasePage
 
 
@@ -192,6 +194,15 @@ class PagoPage(BasePage):
     def regresar_al_inicio(self):
         self.tocar(L.P4_BTN_REGRESAR_INICIO)
 
+    # ---------- simulador de pinpad (v1.6.37) ----------
+    def es_simulador(self, timeout=3):
+        """True si el módulo de pago en pantalla es el simulador de Memphis (Approved / Declined)."""
+        return self.existe(L.SIM_BTN_APROBAR, timeout)
+
+    def simular(self, resultado):
+        """Toca 'Approved' o 'Declined' en el simulador."""
+        self.tocar(L.SIM_BTN_APROBAR if resultado == "aprobado" else L.SIM_BTN_DECLINAR)
+
     def esperar_resultado(self, timeout):
         """Espera a que el módulo de pago regrese a Rompefilas con un resultado."""
         opciones = {
@@ -208,18 +219,28 @@ class PagoPage(BasePage):
 
 
 class ReciboPage(BasePage):
-    """P5 - Recibo / Pago exitoso. TODO confirmar localizadores cuando exista en la app."""
+    """P5 - Comprobante '¡Pago exitoso!' (v1.6.37)."""
 
     def visible(self, timeout=None):
-        return self.existe(L.P5_PAGO_EXITOSO, timeout or settings.TIMEOUT)
+        return self.existe(L.P5_TITULO, timeout or settings.TIMEOUT)
+
+    def datos(self):
+        """{'Folio', 'Total', 'Nombre', 'Referencia', 'Autorización', 'Tarjeta', 'Fecha', 'Estado'} del comprobante.
+        Cada etiqueta toma el texto siguiente (si una etiqueta se repite, se queda la primera)."""
+        textos = self.textos()
+        datos = {}
+        for i, t in enumerate(textos):
+            if t in L.P5_CAMPOS and t not in datos and i + 1 < len(textos):
+                datos[t] = textos[i + 1]
+            elif t.startswith("CONF-"):
+                datos["Folio"] = t
+            elif t.endswith("MXN") and "Total" not in datos:
+                datos["Total"] = t
+        datos["Repetidos"] = sorted({t for t in L.P5_CAMPOS if textos.count(t) > 1})
+        return datos
 
     def autorizacion(self):
-        textos = self.textos()
-        for i, t in enumerate(textos):
-            if "utorización" in t:
-                m = re.search(r"\d{4,}", t) or (re.search(r"\d{4,}", textos[i + 1]) if i + 1 < len(textos) else None)
-                return m.group(0) if m else ""
-        return ""
+        return self.datos().get("Autorización", "")
 
     def reimprimir(self):
         self.tocar(L.P5_BTN_REIMPRIMIR)
@@ -262,6 +283,7 @@ class FlujoKiosko:
         self.pago = PagoPage(driver)
         self.recibo = ReciboPage(driver)
         self.inactividad = InactividadModal(driver)
+        self.estados_redundantes = False  # CP-RC-ROM-007
         self.t_inicio = None  # momento en que se tocó 'Toque para iniciar' (CP-ES-ROM-002)
 
     def _captura(self, descripcion, **kw):
@@ -300,7 +322,9 @@ class FlujoKiosko:
                     setattr(self.ev, clave, valor)
 
     def capturar_referencia(self, referencia, captura=True):
-        if len(str(referencia)) == 16:
+        # En el reporte se muestra la referencia que sí regresó adeudos; si ninguna, la primera capturada
+        self._ultima_referencia = str(referencia)
+        if len(str(referencia)) == 16 and self.ev and not self.ev.referencia:
             self._registrar(referencia=str(referencia))
         self.identificacion.teclear(referencia)
         if captura:
@@ -319,7 +343,8 @@ class FlujoKiosko:
         self.identificacion.esperar_estable(0.8)
         if resultado == "p2" and self.ev:
             adeudos = self.adeudos.adeudos()
-            self._registrar(contribuyente=self.adeudos.contribuyente(),
+            self._registrar(referencia=getattr(self, "_ultima_referencia", ""),
+                            contribuyente=self.adeudos.contribuyente(),
                             monto=round(sum(a["monto"] for a in adeudos), 2) if adeudos else None)
         return resultado
 
@@ -356,6 +381,42 @@ class FlujoKiosko:
         resultado = pedir_tarjeta(instruccion, referencia=getattr(self.ev, "referencia", ""),
                                   monto=getattr(self.ev, "monto", None), hasta=_resultado,
                                   timeout=timeout, evidencia=self.ev) or "sin_resultado"
-        self.pago.esperar_estable(1)
-        self._captura(f"Resultado del cobro: {resultado}")
+        return self._despues_del_cobro(resultado)
+
+    def completar_cobro(self, simulado="aprobado", instruccion=""):
+        """Termina el cobro con el módulo de pago ya abierto.
+        Simulador de Memphis: toca 'Approved'/'Declined' según 'simulado' (sin tester).
+        Pinpad real: pide la tarjeta al tester (requiere INTERACTIVO=true)."""
+        if self.pago.es_simulador():
+            if self.ev:
+                self.ev.nota(f"Módulo de pago: simulador de Memphis → '{'Approved' if simulado == 'aprobado' else 'Declined'}'")
+            self.pago.simular(simulado)
+            resultado = self.pago.esperar_resultado(settings.TIMEOUT_APP_PAGO)
+            return self._despues_del_cobro(resultado)
+        requiere_tester(f"Pinpad real: {instruccion or 'presentar la tarjeta física'}")
+        return self.esperar_tarjeta_del_tester(instruccion or "Presente una tarjeta CON FONDOS.")
+
+    def exigir_pinpad_real(self, motivo):
+        """Casos que dependen de la tarjeta física (chip, banda, NIP, contactless, timeout de lectura):
+        con el simulador quedan Pendientes hasta que se integre la animación de tarjeta / NIP."""
+        if self.pago.es_simulador():
+            pendiente(f"{SIN_ANIMACION_TARJETA}. {motivo}")
+        requiere_tester(motivo)
+
+    def _despues_del_cobro(self, resultado):
+        """Captura el resultado y, si se aprobó, deja el comprobante en pantalla y marca la referencia 'pagada'."""
+        self.estados_redundantes = False
+        if resultado == "aprobado":
+            self.pago.esperar_estable(0.5)
+            # CP-RC-ROM-007: 'Pago exitoso' y 'Pago procesado' a la vez antes del comprobante
+            self.estados_redundantes = bool(self.driver.find_elements(*L.P4_PAGO_PROCESADO))
+            self._captura("Pago aprobado (transición antes del comprobante)")
+            if self.ev and self.ev.referencia:
+                referencias.marcar_pagada(self.ev.referencia, self.ev.caso_id)
+            self.recibo.visible(15)
+            self.recibo.esperar_estable(1)
+            self._captura("P5 - Comprobante")
+        else:
+            self.pago.esperar_estable(1)
+            self._captura(f"Resultado del cobro: {resultado}")
         return resultado

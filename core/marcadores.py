@@ -43,6 +43,10 @@ def validacion_manual(motivo):
     pytest.skip(f"{PREFIJO_MANUAL} {motivo}")
 
 
+SIN_ANIMACION_TARJETA = ("Aún no integrado: falta la animación para insertar la tarjeta y capturar el NIP "
+                         "(el módulo de pago es el simulador de Memphis, solo Approved / Declined)")
+
+
 def pendiente(motivo):
     """Para usar dentro de una prueba cuando falta un dato o una funcionalidad de la que depende."""
     pytest.skip(f"{PREFIJO_PENDIENTE} {motivo}")

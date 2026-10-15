@@ -9,7 +9,7 @@ import pytest
 from config import locators as L
 from config import settings
 from config.datos_prueba import REF_VALIDA, SIN_ACENTO
-from core.marcadores import caso
+from core.marcadores import bloqueado, caso
 
 
 @caso("CP-MP-ROM-001")
@@ -22,6 +22,9 @@ def test_CP_MP_ROM_001_tarjeta_en_la_misma_t6(flujo, evidencia, registrar_app_pa
     assert estado != "error_app_pago", f"P4: {flujo.pago.mensaje_error()}"
     assert estado != "sin_respuesta", f"La app no respondió en {settings.TIMEOUT_APP_PAGO} s al elegir Tarjeta"
     assert not flujo.pago.existe(L.P4_SIN_CONEXION_TERMINAL, 1), "Pide una terminal externa ('No se pudo conectar con la terminal')"
+    if flujo.pago.es_simulador():
+        bloqueado("Módulo de pago integrado invocado sin terminal externa (simulador de Memphis). El monto y la "
+                  "instrucción para insertar/deslizar/acercar la tarjeta llegan con la animación de tarjeta / NIP, aún no integrada")
 
     fuente = flujo.driver.page_source
     evidencia.nota(f"Módulo de pago en primer plano: {flujo.driver.current_package}")

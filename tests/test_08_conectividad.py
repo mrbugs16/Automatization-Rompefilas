@@ -5,13 +5,11 @@ MÓDULO 08 - CONECTIVIDAD
 La red se corta con 'svc wifi/data disable' por ADB: la T6 sigue conectada por USB y Appium no se cae.
 Siempre se restablece en el finally.
 """
-import time
-
 import pytest
 
 from config.datos_prueba import MSG_SIN_ADEUDOS, REF_VALIDA
 from core import adb
-from core.marcadores import caso, manual, requiere_tester
+from core.marcadores import caso, manual
 
 pytestmark = [pytest.mark.red]
 
@@ -19,18 +17,18 @@ pytestmark = [pytest.mark.red]
 @caso("CP-CX-ROM-001")
 @pytest.mark.tarjeta
 def test_CP_CX_ROM_001_cambio_de_red_durante_cobro(flujo, evidencia, pantalla_cobro):
-    requiere_tester("Requiere presentar una tarjeta mientras la suite apaga el Wi-Fi")
     try:
-        print("\n🙋 Presente la tarjeta CON FONDOS ahora: en 5 s la suite apagará el Wi-Fi.")
-        time.sleep(5)
         adb.wifi(False)
-        evidencia.nota("Wi-Fi apagado a mitad del cobro (queda datos móviles si hay SIM)")
-        resultado = flujo.esperar_tarjeta_del_tester("Termine la operación con la tarjeta (NIP si se pide).")
+        evidencia.nota("Wi-Fi apagado con el cobro en curso (si hay SIM, la T6 pasa a datos móviles)")
+        resultado = flujo.completar_cobro("aprobado", "Presente la tarjeta CON FONDOS (el Wi-Fi ya se apagó).")
     finally:
         adb.wifi(True)
         adb.esperar_red()
+    evidencia.nota(f"Resultado tras el cambio de red: {resultado}")
     assert resultado != "sin_resultado", "La app no informó el resultado tras el cambio de red"
-    evidencia.nota(f"Resultado tras el cambio de red: {resultado} · ⚠ (Manual) conciliar en backend que no haya cobro sin registro")
+    if resultado == "aprobado":
+        assert flujo.recibo.visible(10), "Se aprobó el cobro pero no se mostró el comprobante"
+    evidencia.nota("⚠ (Manual) Conciliar en backend que no haya cobro sin registro")
 
 
 @caso("CP-CX-ROM-002")

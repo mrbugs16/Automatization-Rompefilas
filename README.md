@@ -136,7 +136,26 @@ los adeudos y el total. Estados:
 Los casos de 6 MSI eligen la referencia por monto (≥ $1,000 o < $1,000). El reporte HTML muestra en cada caso
 la referencia, el contribuyente y el monto cobrado, y la matriz de resultados los agrega en *Observaciones*.
 
-## Cobro con tarjeta (INTERACTIVO=true)
+## Módulo de pago: simulador de Memphis (v1.6.37)
+
+Desde v1.6.37 el módulo de pago es el simulador `com.memphis.pinpadsimulator` (botones *Approved* / *Declined*).
+La suite lo detecta y **toca el botón sola** (`FlujoKiosko.completar_cobro`), así que los flujos de pago aprobado y
+rechazado corren desatendidos: happy path, comprobante, reimpresión, regreso al inicio, datos enmascarados,
+referencia repetida, fecha/hora, notificación y cambio de red durante el cobro. **Cada pago aprobado usa una
+referencia** del catálogo (se marca `pagada` sola).
+
+> ⚠ Durante la corrida **nadie debe tocar la T6**: si alguien presiona *Approved* en el simulador, se paga la
+> referencia que esté en curso.
+
+Los casos que dependen de la tarjeta física (chip, banda, contactless, NIP, timeout de lectura, cancelar en el
+pinpad) quedan **Pendientes** hasta que se integre la animación para insertar la tarjeta y capturar el NIP.
+
+## Regla de negocio: pago de adeudos en conjunto
+
+Los adeudos de una referencia **no se pagan de forma individual**: en todos los casos se pagan todos juntos.
+CP-AD-ROM-001 a 003 validan que no haya selección individual y que P3 cobre la suma de todos los adeudos.
+
+## Cobro con tarjeta física (INTERACTIVO=true)
 
 Al llegar al módulo de pago, la terminal muestra la indicación con la referencia y el monto, suena la campana
 y da **al menos 120 s** (`TIMEOUT_TARJETA`, default 150 s) para insertar/deslizar/acercar la tarjeta y capturar
@@ -144,10 +163,11 @@ el NIP, recordando el tiempo restante cada 10 s. La suite detecta el resultado s
 
 ## 6 meses sin intereses (CP-MSI-ROM-001 a 006)
 
-Aplica a transacciones **desde $1,000.00**. El plan lo ofrece el módulo de pago, así que se **valida a mano**:
-la suite elige la referencia por monto, verifica que P3 cobre ese total, calcula la mensualidad (total / 6) y deja
-el cobro listo; el caso termina como *Manual* con la lista de lo que hay que confirmar. En el reporte llevan la
-etiqueta **6 MSI** y se pueden separar con el filtro *Tipo de pago*.
+Aplica a transacciones **desde $1,000.00** y se **valida a mano**. **Aún no está integrado en v1.6.37**: el plan se
+elige en el módulo de pago y depende de la animación de tarjeta / NIP que todavía falta. Los casos se mantienen:
+la suite elige la referencia por monto, llega a P3, verifica que se cobre ese total y calcula la mensualidad
+(total / 6) sin abrir el módulo de pago; el caso queda *Pendiente* con lo que hay que validar cuando se integre.
+En el reporte llevan la etiqueta **6 MSI** y se pueden separar con el filtro *Tipo de pago*.
 
 ---
 

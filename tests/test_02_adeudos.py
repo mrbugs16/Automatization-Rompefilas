@@ -2,13 +2,15 @@
 MÓDULO 02 - ADEUDOS (P2)
 · CP-AD-ROM-001 a CP-AD-ROM-004
 
-v1.6.36: P2 lista los adeudos sin casillas ni 'Seleccionar todo'; 'Pagar ahora' cobra siempre el total.
-Si una versión nueva agrega la selección, estas pruebas la usan automáticamente (ver locators.CASILLAS).
+Regla de negocio (ajuste del 15/10/2026): los adeudos NO se pagan de forma individual; en todos los casos se
+pagan en conjunto. P2 no tiene casillas ni 'Seleccionar todo' y 'Pagar ahora' cobra siempre el total.
+CP-AD-ROM-001 a 003 validan esa regla (si una versión agrega selección individual, fallan).
 """
 from config import locators as L
 from config.datos_prueba import REF_INEXISTENTE_2, REF_VALIDA
-from core import adb
-from core.marcadores import caso, pendiente
+from core.marcadores import caso
+
+REGLA = "Los adeudos se pagan en conjunto (sin selección individual)"
 
 
 def _validar_lista(flujo, evidencia):
@@ -22,57 +24,54 @@ def _validar_lista(flujo, evidencia):
     return adeudos
 
 
-@caso("CP-AD-ROM-001")
-def test_CP_AD_ROM_001_seleccion_individual(flujo, evidencia):
-    flujo.ir_a_adeudos(REF_VALIDA["referencia"])
-    adeudos = _validar_lista(flujo, evidencia)
-    casillas = flujo.adeudos.casillas()
-    assert casillas, (f"P2 no permite seleccionar un adeudo individual (no hay casillas en v{adb.version_app()}); "
-                      f"'Pagar ahora' cobra los {len(adeudos)} adeudos juntos")
-    casillas[0].click()
-    flujo._captura("Un adeudo seleccionado")
-    flujo.adeudos.pagar()
-    assert flujo.metodo.visible(), "No se avanzó a P3"
-    total = flujo.metodo.total()
-    flujo._captura("P3 con un adeudo")
-    assert total == adeudos[0]["monto"], f"P3 cobra ${total} en lugar de {adeudos[0]['texto_monto']}"
-
-
-@caso("CP-AD-ROM-002")
-def test_CP_AD_ROM_002_seleccionar_todo(flujo, evidencia):
-    flujo.ir_a_adeudos(REF_VALIDA["referencia"])
-    adeudos = _validar_lista(flujo, evidencia)
+def _cobra_el_total(flujo, evidencia, adeudos):
+    """'Pagar ahora' lleva a P3 con la suma de TODOS los adeudos."""
     suma = round(sum(a["monto"] for a in adeudos), 2)
-    if flujo.adeudos.existe(L.P2_SELECCIONAR_TODO, 1):
-        flujo.adeudos.tocar(L.P2_SELECCIONAR_TODO)
-        marcadas = [c for c in flujo.adeudos.casillas() if c.get_attribute("checked") == "true"]
-        assert len(marcadas) == len(adeudos), f"'Seleccionar todo' marcó {len(marcadas)} de {len(adeudos)}"
-    else:
-        evidencia.nota(f"⚠ No existe 'Seleccionar todo' en v{adb.version_app()}: la app cobra siempre todos los adeudos")
+    assert flujo.adeudos.pagar_habilitado(), "'Pagar ahora' está deshabilitado"
     flujo.adeudos.pagar()
     assert flujo.metodo.visible(), "No se avanzó a P3"
     flujo.metodo.esperar_estable(0.8)
     total = flujo.metodo.total()
     flujo._captura(f"P3 - total ${total:,.2f}")
-    evidencia.nota(f"Suma de P2: ${suma:,.2f} · Total en P3: ${total:,.2f} · Esperado: {REF_VALIDA['total']}")
-    assert total == suma, f"El total de P3 (${total:,.2f}) no es la suma de los adeudos (${suma:,.2f})"
+    evidencia.nota(f"Suma de los {len(adeudos)} adeudos: ${suma:,.2f} · Total en P3: ${total:,.2f}")
+    assert total == suma, f"P3 cobra ${total:,.2f} y la suma de todos los adeudos es ${suma:,.2f}"
+    return total
+
+
+def _sin_seleccion_individual(flujo, evidencia):
+    casillas = flujo.adeudos.casillas()
+    evidencia.nota(f"{REGLA}: casillas en P2 = {len(casillas)}, "
+                   f"'Seleccionar todo' = {'sí' if flujo.adeudos.existe(L.P2_SELECCIONAR_TODO, 1) else 'no'}")
+    assert not casillas, (f"P2 permite seleccionar adeudos de forma individual ({len(casillas)} casillas); "
+                          f"la regla es pagar todos en conjunto")
+
+
+@caso("CP-AD-ROM-001")
+def test_CP_AD_ROM_001_pago_en_conjunto(flujo, evidencia):
+    flujo.ir_a_adeudos(REF_VALIDA["referencia"])
+    adeudos = _validar_lista(flujo, evidencia)
+    _sin_seleccion_individual(flujo, evidencia)
+    _cobra_el_total(flujo, evidencia, adeudos)
+
+
+@caso("CP-AD-ROM-002")
+def test_CP_AD_ROM_002_todos_los_adeudos_incluidos(flujo, evidencia):
+    flujo.ir_a_adeudos(REF_VALIDA["referencia"])
+    adeudos = _validar_lista(flujo, evidencia)
+    assert not flujo.adeudos.existe(L.P2_SELECCIONAR_TODO, 1), \
+        "Existe 'Seleccionar todo': con la regla de pago en conjunto todos los adeudos ya van incluidos"
+    total = _cobra_el_total(flujo, evidencia, adeudos)
     assert f"${total:,.2f}" == REF_VALIDA["total"], f"El total no es el esperado {REF_VALIDA['total']}"
 
 
 @caso("CP-AD-ROM-003")
-def test_CP_AD_ROM_003_sin_seleccion(flujo, evidencia):
+def test_CP_AD_ROM_003_no_se_puede_quitar_adeudos(flujo, evidencia):
     flujo.ir_a_adeudos(REF_VALIDA["referencia"])
-    casillas = flujo.adeudos.casillas()
-    if not casillas:
-        pendiente(f"No aplica en v{adb.version_app()}: P2 no tiene selección de adeudos "
-                  "(siempre se cobran todos, no es posible dejar 0 seleccionados)")
-    for c in casillas:
-        if c.get_attribute("checked") == "true":
-            c.click()
-    flujo._captura("Ningún adeudo seleccionado")
-    if flujo.adeudos.pagar_habilitado():
-        flujo.adeudos.pagar()
-        assert not flujo.metodo.visible(3), "Se avanzó a P3 sin adeudos seleccionados"
+    adeudos = _validar_lista(flujo, evidencia)
+    _sin_seleccion_individual(flujo, evidencia)
+    # No es posible dejar 0 adeudos: 'Pagar ahora' siempre cobra el total (nunca $0.00)
+    total = _cobra_el_total(flujo, evidencia, adeudos)
+    assert total > 0, "P3 cobra $0.00"
 
 
 @caso("CP-AD-ROM-004")

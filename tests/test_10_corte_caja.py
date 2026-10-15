@@ -5,13 +5,18 @@ MÓDULO 10 - CORTE DE CAJA, HISTORIAL Y OPERACIÓN DEL EQUIPO
 v1.6.36 no tiene menú de operador (corte, historial, cancelaciones): esos casos se detectan solos
 en cuanto la app los muestre (locators.MENU_CORTE / MENU_HISTORIAL).
 """
+import re
 import time
+from datetime import datetime
 
 import pytest
 
 from config import locators as L
 from core import adb
-from core.marcadores import caso, manual, pendiente, requiere_tester
+from core.marcadores import caso, manual, pendiente
+
+MESES = {m: i for i, m in enumerate(('enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto',
+                                     'septiembre', 'octubre', 'noviembre', 'diciembre'), 1)}
 
 
 def _buscar_menu(flujo, loc):
@@ -46,16 +51,16 @@ def test_CP_CC_ROM_003_cancelacion_por_supervisor(flujo, evidencia):
 @caso("CP-CC-ROM-004")
 @pytest.mark.tarjeta
 def test_CP_CC_ROM_004_notificacion_durante_cobro(flujo, evidencia, pantalla_cobro):
-    requiere_tester("Requiere presentar una tarjeta mientras llega una notificación")
     try:
-        print("\n🙋 Presente la tarjeta CON FONDOS: en 5 s la suite enviará una notificación del sistema.")
-        time.sleep(5)
         adb.shell("cmd notification post -S bigtext -t 'QA Rompefilas' qa_rompefilas 'Notificación de prueba durante el cobro'")
-        evidencia.nota("Notificación del sistema enviada durante el cobro")
-        resultado = flujo.esperar_tarjeta_del_tester("Termine la operación con la tarjeta (NIP si se pide).")
+        evidencia.nota("Notificación del sistema enviada con el cobro en curso")
+        time.sleep(2)
+        evidencia.captura("Notificación con el módulo de pago abierto")
+        resultado = flujo.completar_cobro("aprobado", "Termine la operación con la tarjeta (NIP si se pide).")
     finally:
         adb.shell("cmd notification cancel qa_rompefilas", silencioso=True)
     assert resultado == "aprobado", f"El cobro no concluyó con la notificación (resultado: {resultado})"
+    assert flujo.recibo.visible(10), "Tras la notificación no se mostró el comprobante"
 
 
 @caso("CP-CC-ROM-005")
@@ -66,8 +71,18 @@ def test_CP_CC_ROM_005_ota_durante_transaccion():
 
 @caso("CP-CC-ROM-006")
 def test_CP_CC_ROM_006_fecha_y_hora(flujo, evidencia, pago_aprobado):
-    _, fecha_t6 = adb.shell("date '+%d/%m/%Y %H:%M:%S %Z'", silencioso=True)
+    """Compara la fecha/hora del comprobante con el reloj de la T6 (zona horaria de Puebla)."""
+    datos = flujo.recibo.datos()
     _, zona = adb.shell("getprop persist.sys.timezone", silencioso=True)
-    evidencia.nota(f"Hora de la T6 al aprobar: {fecha_t6.strip()} ({zona.strip()}) · PC: {time.strftime('%d/%m/%Y %H:%M:%S')}")
-    assert "Mexico" in zona or "America/" in zona, f"Zona horaria de la T6 inesperada: {zona.strip()}"
-    evidencia.nota("⚠ (Manual) Comparar la hora del ticket contra la hora oficial (Puebla)")
+    _, reloj = adb.shell("date '+%d/%m/%Y %H:%M'", silencioso=True)
+    evidencia.nota(f"Comprobante: '{datos.get('Fecha', '')}' · T6: {reloj.strip()} ({zona.strip()})")
+    m = re.search(r"(\d{1,2}) de (\w+) de (\d{4}) (\d{1,2}):(\d{2})", datos.get("Fecha", ""))
+    assert m, f"El comprobante no muestra fecha y hora: '{datos.get('Fecha', '')}'"
+    dia, mes, anio, hora, minuto = m.groups()
+    comprobante = datetime(int(anio), MESES[mes.lower()], int(dia), int(hora), int(minuto))
+    t6 = datetime.strptime(reloj.strip(), "%d/%m/%Y %H:%M")
+    diferencia = round((comprobante - t6).total_seconds() / 60)
+    evidencia.nota(f"Diferencia comprobante − reloj de la T6: {diferencia} min")
+    assert abs(diferencia) <= 5, (f"La hora del comprobante ({comprobante:%d/%m/%Y %H:%M}) difiere {diferencia} min de la "
+                                  f"hora de la T6 ({t6:%d/%m/%Y %H:%M}, {zona.strip()})")
+    evidencia.nota("⚠ (Manual) Comparar también la hora del ticket impreso")

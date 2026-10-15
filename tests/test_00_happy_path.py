@@ -9,7 +9,7 @@ import pytest
 
 from config import settings
 from config.datos_prueba import REF_VALIDA
-from core.marcadores import caso, requiere_tester
+from core.marcadores import caso
 
 pytestmark = [pytest.mark.tarjeta]
 
@@ -24,7 +24,7 @@ pytestmark = [pytest.mark.tarjeta]
           "Pagar ahora\nElegir 'Tarjeta – Débito o crédito'\nPresentar la tarjeta en la T6\nVerificar el recibo (P5)",
     esperado="Se invoca el módulo de pago de la T6 con el total, el pago se aprueba y se muestra el recibo con autorización.",
 )
-def test_HP_ROM_001_happy_path(flujo, evidencia, registrar_app_pago, marcar_pagada):
+def test_HP_ROM_001_happy_path(flujo, evidencia, registrar_app_pago):
     # P1 -> P2
     flujo.ir_a_adeudos(REF_VALIDA["referencia"])
     contribuyente = flujo.adeudos.contribuyente()
@@ -51,11 +51,12 @@ def test_HP_ROM_001_happy_path(flujo, evidencia, registrar_app_pago, marcar_paga
     assert estado != "error_app_pago", f"P4: {flujo.pago.mensaje_error()}"
     assert estado != "sin_respuesta", f"La app no respondió en {settings.TIMEOUT_APP_PAGO} s al elegir Tarjeta"
 
-    # P4 -> P5 (requiere presentar la tarjeta)
-    requiere_tester("Módulo de pago abierto: falta presentar la tarjeta física")
-    resultado = flujo.esperar_tarjeta_del_tester("Presente una tarjeta CON FONDOS (chip, banda o contactless).")
+    # P4 -> P5: simulador 'Approved' (o tarjeta física con el pinpad real)
+    resultado = flujo.completar_cobro("aprobado", "Presente una tarjeta CON FONDOS (chip, banda o contactless).")
     assert resultado == "aprobado", f"El cobro terminó en '{resultado}'"
-    marcar_pagada()
-    autorizacion = flujo.recibo.autorizacion()
-    evidencia.nota(f"Autorización: {autorizacion or '(no se encontró en pantalla)'}")
-    assert autorizacion, "El recibo no muestra el número de autorización"
+    assert flujo.recibo.visible(5), "No se mostró el comprobante '¡Pago exitoso!'"
+    datos = flujo.recibo.datos()
+    evidencia.nota(f"Comprobante: {datos}")
+    assert datos.get("Autorización"), "El comprobante no muestra el número de autorización"
+    assert datos.get("Referencia") == evidencia.referencia,         f"El comprobante muestra la referencia {datos.get('Referencia')} en lugar de {evidencia.referencia}"
+    assert datos.get("Total", "").startswith(f"${total:,.2f}"), f"El comprobante muestra {datos.get('Total')} y se cobró ${total:,.2f}"

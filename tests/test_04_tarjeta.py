@@ -2,9 +2,12 @@
 MÓDULO 04 - TARJETA (P4: cobro en el módulo de pago integrado de la T6)
 · CP-TJ-ROM-001 a CP-TJ-ROM-012, CP-SG-ROM-001, CP-SG-ROM-002
 
-Todos usan 'pantalla_cobro': si la app no se comunica con la aplicación de pago, quedan Bloqueados.
-Los que necesitan una tarjeta física piden la acción al tester (INTERACTIVO=true).
-CP-TJ-ROM-003 (timeout) y CP-TJ-ROM-012 (cancelar) no necesitan tarjeta: corren desatendidos.
+v1.6.37: el módulo de pago es el simulador de Memphis (solo 'Approved' / 'Declined'):
+- Se automatizan los resultados que el simulador sí produce: rechazo (CP-TJ-ROM-002) y pago aprobado
+  (CP-SG-ROM-001 vía 'pago_aprobado').
+- Los que dependen de la tarjeta física (chip, banda, contactless, NIP, timeout de lectura, cancelar en el
+  pinpad) quedan Pendientes hasta que se integre la animación para insertar la tarjeta y capturar el NIP.
+  Con el pinpad real se guían con INTERACTIVO=true.
 """
 import re
 import time
@@ -14,7 +17,7 @@ import pytest
 from config import locators as L
 from config import settings
 from core import adb
-from core.marcadores import caso, manual, requiere_tester
+from core.marcadores import SIN_ANIMACION_TARJETA, caso, manual, pendiente
 
 pytestmark = [pytest.mark.tarjeta]
 
@@ -26,7 +29,7 @@ def _luhn(numero):
 
 
 def _tarjeta_aprobada(flujo, instruccion, evidencia, tipo=""):
-    requiere_tester(f"Requiere presentar una tarjeta física ({instruccion})")
+    flujo.exigir_pinpad_real(instruccion)
     resultado = flujo.esperar_tarjeta_del_tester(instruccion)
     assert resultado == "aprobado", f"El cobro terminó en '{resultado}'"
     assert flujo.recibo.visible(5), "No se avanzó a P5 con la confirmación de pago"
@@ -44,18 +47,29 @@ def test_CP_TJ_ROM_001_debito_chip_aprobado(flujo, evidencia, pantalla_cobro):
 
 @caso("CP-TJ-ROM-002")
 def test_CP_TJ_ROM_002_tarjeta_declinada(flujo, evidencia, pantalla_cobro):
-    requiere_tester("Requiere una tarjeta con saldo insuficiente")
-    resultado = flujo.esperar_tarjeta_del_tester("Inserte una tarjeta SIN FONDOS suficientes y capture el NIP.")
+    resultado = flujo.completar_cobro("rechazado", "Inserte una tarjeta SIN FONDOS suficientes y capture el NIP.")
     assert resultado == "rechazado", f"Se esperaba 'No se pudo procesar el pago' y el cobro terminó en '{resultado}'"
+    evidencia.nota(f"Mensaje: {flujo.pago.mensaje_error()} · "
+                   f"{next((t for t in flujo.pago.textos() if 'Declined' in t), '')}")
+    assert flujo.pago.existe(L.P4_ERROR_SIN_CARGO, 2), "No se informa que no se realizó ningún cargo"
     assert flujo.pago.existe(L.P4_BTN_INTENTAR, 2), "Falta la opción 'Intentar de nuevo'"
     assert flujo.pago.existe(L.P4_BTN_REGRESAR_INICIO, 2), "Falta la opción 'Regresar al inicio'"
-    assert not flujo.recibo.visible(2), "Se mostró el recibo de un pago declinado"
-    evidencia.nota("⚠ (Manual) Confirmar que NO se imprimió comprobante y que el adeudo sigue pendiente")
+    assert not flujo.recibo.visible(2), "Se mostró el comprobante de un pago declinado"
+    evidencia.nota("⚠ (Manual) Confirmar que NO se imprimió comprobante")
+    # El adeudo debe seguir pendiente: la misma referencia se puede volver a consultar con adeudos
+    flujo.pago.regresar_al_inicio()
+    assert flujo.inicio.visible(), "'Regresar al inicio' no regresó a la pantalla de inicio"
+    flujo.iniciar()
+    flujo.capturar_referencia(evidencia.referencia, captura=False)
+    assert flujo.consultar() == "p2", "Tras el rechazo la referencia ya no muestra adeudos (se registró como pagada)"
+    flujo._captura("La referencia sigue con adeudos tras el rechazo")
 
 
 @caso("CP-TJ-ROM-003")
 @pytest.mark.lento
 def test_CP_TJ_ROM_003_timeout_sin_tarjeta(flujo, evidencia, pantalla_cobro):
+    if flujo.pago.es_simulador():
+        pendiente(f"{SIN_ANIMACION_TARJETA}. El simulador no expira (esperó 45 s sin cambio el 15/10/2026)")
     inicio = time.time()
     resultado = flujo.pago.esperar_resultado(settings.TIMEOUT_TARJETA_SIN_ACCION)
     segundos = round(time.time() - inicio)
@@ -93,7 +107,7 @@ def test_CP_TJ_ROM_007_banda_magnetica(flujo, evidencia, pantalla_cobro):
 
 @caso("CP-TJ-ROM-008")
 def test_CP_TJ_ROM_008_nip_incorrecto(flujo, evidencia, pantalla_cobro):
-    requiere_tester("Requiere capturar un NIP incorrecto")
+    flujo.exigir_pinpad_real("Requiere capturar un NIP incorrecto")
     resultado = flujo.esperar_tarjeta_del_tester("Inserte la tarjeta y capture un NIP INCORRECTO (una vez).")
     assert resultado == "nip_incorrecto", f"Se esperaba 'NIP incorrecto' y el cobro terminó en '{resultado}'"
     assert not flujo.recibo.visible(2), "Se registró el pago con NIP incorrecto"
@@ -101,7 +115,7 @@ def test_CP_TJ_ROM_008_nip_incorrecto(flujo, evidencia, pantalla_cobro):
 
 @caso("CP-TJ-ROM-009")
 def test_CP_TJ_ROM_009_nip_intentos_maximos(flujo, evidencia, pantalla_cobro):
-    requiere_tester("Requiere capturar un NIP incorrecto en el número máximo de intentos")
+    flujo.exigir_pinpad_real("Requiere capturar un NIP incorrecto en el número máximo de intentos")
     resultado = flujo.esperar_tarjeta_del_tester("Capture un NIP INCORRECTO en todos los intentos que permita la T6.",
                                                  timeout=settings.TIMEOUT_TARJETA * 2)
     assert resultado in ("rechazado", "nip_incorrecto"), f"La transacción no se declinó (resultado: {resultado})"
@@ -111,7 +125,7 @@ def test_CP_TJ_ROM_009_nip_intentos_maximos(flujo, evidencia, pantalla_cobro):
 
 @caso("CP-TJ-ROM-010")
 def test_CP_TJ_ROM_010_retiro_prematuro(flujo, evidencia, pantalla_cobro):
-    requiere_tester("Requiere retirar la tarjeta a mitad del procesamiento")
+    flujo.exigir_pinpad_real("Requiere retirar la tarjeta a mitad del procesamiento")
     resultado = flujo.esperar_tarjeta_del_tester("Inserte la tarjeta y RETÍRELA antes de que termine el procesamiento.")
     assert resultado != "aprobado", "El pago se aprobó aunque la tarjeta se retiró antes de tiempo"
     assert resultado != "sin_resultado", "La app no informó nada al usuario tras retirar la tarjeta"
@@ -120,7 +134,7 @@ def test_CP_TJ_ROM_010_retiro_prematuro(flujo, evidencia, pantalla_cobro):
 
 @caso("CP-TJ-ROM-011")
 def test_CP_TJ_ROM_011_tarjeta_no_soportada(flujo, evidencia, pantalla_cobro):
-    requiere_tester("Requiere una tarjeta no aceptada (vales, marca no aceptada o vencida)")
+    flujo.exigir_pinpad_real("Requiere una tarjeta no aceptada (vales, marca no aceptada o vencida)")
     resultado = flujo.esperar_tarjeta_del_tester("Presente una tarjeta de marca NO aceptada, de vales o VENCIDA.")
     assert resultado in ("no_aceptada", "rechazado"), f"No se informó tarjeta no aceptada (resultado: {resultado})"
     assert flujo.pago.existe(L.P4_BTN_INTENTAR, 2), "No se ofrece usar otra tarjeta"
@@ -128,6 +142,8 @@ def test_CP_TJ_ROM_011_tarjeta_no_soportada(flujo, evidencia, pantalla_cobro):
 
 @caso("CP-TJ-ROM-012")
 def test_CP_TJ_ROM_012_cancelar_antes_de_tarjeta(flujo, evidencia, pantalla_cobro):
+    if flujo.pago.es_simulador():
+        pendiente(f"{SIN_ANIMACION_TARJETA}. El simulador no tiene botón 'Cancelar'")
     assert flujo.pago.existe(L.P4_BTN_CANCELAR_COBRO, 5), "La pantalla de cobro no tiene botón 'Cancelar'"
     flujo.pago.tocar(L.P4_BTN_CANCELAR_COBRO)
     flujo.pago.esperar_estable(2)
@@ -144,16 +160,21 @@ def test_CP_TJ_ROM_012_cancelar_antes_de_tarjeta(flujo, evidencia, pantalla_cobr
 
 @caso("CP-SG-ROM-001")
 def test_CP_SG_ROM_001_datos_de_tarjeta_enmascarados(flujo, evidencia, pago_aprobado):
+    datos = flujo.recibo.datos()
+    evidencia.nota(f"Comprobante: {datos}")
     textos = flujo.recibo.textos()
     completos = [t for t in textos for n in re.findall(r"\d{13,19}", t.replace(" ", "")) if _luhn(n)]
     assert not completos, f"P5 muestra un número de tarjeta completo: {completos}"
+    assert re.search(r"\*{4}\d{4}$", datos.get("Tarjeta", "")), \
+        f"La tarjeta no se muestra enmascarada con los últimos 4 dígitos: '{datos.get('Tarjeta', '')}'"
     en_logs = sorted({n for l in adb.logcat() for n in re.findall(r"(?<!\d)\d{13,19}(?!\d)", l) if _luhn(n)})
     evidencia.nota(f"Números con formato de tarjeta (Luhn) en logcat: {len(en_logs)}")
     assert not en_logs, f"El logcat contiene números de tarjeta completos: {[n[:6] + '…' + n[-4:] for n in en_logs]}"
-    evidencia.nota("⚠ (Manual) Revisar el ticket: solo los últimos 4 dígitos")
+    evidencia.nota("⚠ (Manual) Revisar el ticket impreso: solo los últimos 4 dígitos")
 
 
 @caso("CP-SG-ROM-002")
-@manual("Inspección visual de la pantalla segura de NIP (teclado aleatorio, asteriscos, sin capturas posibles)")
+@manual("Inspección visual de la pantalla segura de NIP (teclado aleatorio, asteriscos, sin capturas posibles). "
+        "Aún no integrada: falta la animación para capturar el NIP")
 def test_CP_SG_ROM_002_nip_en_pantalla_segura():
     pass
