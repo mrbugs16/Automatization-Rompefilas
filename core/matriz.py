@@ -98,10 +98,12 @@ def escribir_resultados(resultados, destino, origen=settings.MATRIZ_XLSX):
         ws.cell(fila, col["Estatus Automatización"]).value = "Automatizada"
         ws.cell(fila, col["Tipo de Ejecución"]).value = "Automatizada"
         fecha = ws.cell(fila, col["Fecha de Ejecución"])
-        fecha.value = hoy
+        heredado = r.get("heredado_de", "")
+        fecha.value = datetime.strptime(heredado, "%Y%m%d_%H%M%S") if heredado[:2] == "20" else hoy
         fecha.number_format = "dd/mm/yyyy"
         evidencia = ws.cell(fila, col["Evidencia"])
-        evidencia.value = f"reporte.html#{caso_id}"
-        evidencia.hyperlink = f"reporte.html#{caso_id}"
+        enlace = f"../{heredado}/reporte.html#{caso_id}" if heredado[:2] == "20" else f"reporte.html#{caso_id}"
+        evidencia.value = enlace
+        evidencia.hyperlink = enlace
         ws.cell(fila, col["Observaciones"]).value = _observacion(r)
     guardar_con_graficas(wb, destino, origen)

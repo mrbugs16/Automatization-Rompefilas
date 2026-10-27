@@ -132,6 +132,7 @@ input[type=search]{flex:1;min-width:200px}
 .tag.msi{background:var(--brand-2);color:#1a1205;font-weight:650}
 .tag.ref{font-family:ui-monospace,Menlo,Consolas,monospace;border:1px solid var(--line);background:var(--panel-2);color:var(--text)}
 .tag.monto{background:var(--ok-bg);color:var(--ok);font-weight:650}
+.tag.heredado{border:1px dashed var(--line);background:transparent;color:var(--muted,var(--text))}
 .cobro{display:flex;flex-wrap:wrap;gap:6px 22px;margin-top:14px;padding:12px 14px;border:1px solid var(--line);border-left:4px solid var(--brand-2);border-radius:10px}
 .cobro span{display:block;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.05em}
 .cobro b{font-weight:650;font-size:15px}
@@ -427,6 +428,7 @@ function tarjeta(c) {
         ${c.tipo_pago === '6 MSI' ? '<span class="tag msi" title="Pago a 6 meses sin intereses (desde $1,000)">6 MSI</span>' : ''}
         ${c.referencia ? `<span class="tag ref" title="Referencia usada">${esc(c.referencia)}</span>` : ''}
         ${c.monto ? `<span class="tag monto" title="Monto cobrado">${money(c.monto)}</span>` : ''}
+        ${c.heredado_de ? `<span class="tag heredado" title="No se re-ejecutó en esta corrida">Corrida ${esc(c.heredado_de)}</span>` : ''}
         ${c.tipo ? `<span class="tag">${esc(c.tipo)}</span>` : ''}${c.prioridad ? `<span class="tag">${esc(c.prioridad)}</span>` : ''}
         ${c.duracion ? `<span class="tag">${dur(c.duracion)}</span>` : ''}
         <span class="tag estado estado-${cls(c.estado)}" title="${esc(DESCRIPCION_ESTADO[c.estado])}">${esc(c.estado)}</span>

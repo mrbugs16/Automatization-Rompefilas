@@ -50,6 +50,7 @@ def test_CP_CC_ROM_003_cancelacion_por_supervisor(flujo, evidencia):
 
 @caso("CP-CC-ROM-004")
 @pytest.mark.tarjeta
+@pytest.mark.pinpad
 def test_CP_CC_ROM_004_notificacion_durante_cobro(flujo, evidencia, pantalla_cobro):
     try:
         adb.shell("cmd notification post -S bigtext -t 'QA Rompefilas' qa_rompefilas 'Notificación de prueba durante el cobro'")

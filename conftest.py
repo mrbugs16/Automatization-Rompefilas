@@ -14,7 +14,7 @@ import pytest
 
 from config import settings
 from config.datos_prueba import MSG_APP_PAGO
-from core import adb, referencias
+from core import adb, historial, referencias
 from core.driver_factory import crear_driver, reiniciar_app, sesion_viva
 from core.evidencia import Evidencia
 from core.marcadores import PREFIJO_MANUAL, PREFIJO_PENDIENTE, bloqueado, pendiente
@@ -28,11 +28,16 @@ RESULTADOS = {}
 INICIO = datetime.now()
 SESION = {"driver": None}
 APP_PAGO = {}  # primera respuesta al elegir 'Tarjeta' (para no repetir el intento en cada caso de tarjeta)
+SOLO_TARJETA = {"activo": False, "ids": set()}  # --solo-tarjeta: casos del pinpad que sí se ejecutan
 
 
 def pytest_addoption(parser):
     parser.addoption("--abrir-reporte", action="store_true", help="Abre el reporte HTML al terminar")
     parser.addoption("--incluir-reinicio", action="store_true", help="Corre CP-IN-ROM-001 (reinicia la T6)")
+    parser.addoption("--solo-tarjeta", action="store_true",
+                     help="Solo los casos del pinpad (marca 'pinpad'); el resto se toma de corridas anteriores")
+    parser.addoption("--heredados-aprobados", action="store_true",
+                     help="Con --solo-tarjeta, los casos no ejecutados salen como Aprobado aunque antes fueran Fallido/Manual")
 
 
 def pytest_configure(config):
@@ -49,6 +54,12 @@ def pytest_configure(config):
 
 
 def pytest_collection_modifyitems(config, items):
+    if config.getoption("--solo-tarjeta"):
+        tarjeta = [i for i in items if i.get_closest_marker("pinpad")]
+        config.hook.pytest_deselected(items=[i for i in items if i not in tarjeta])
+        items[:] = tarjeta
+        SOLO_TARJETA["activo"] = True
+        SOLO_TARJETA["ids"] = {_caso_id(i) for i in tarjeta}
     if not config.getoption("--incluir-reinicio"):
         omitir = pytest.mark.skip(reason=f"{PREFIJO_MANUAL} Reinicia la T6: correr con --incluir-reinicio")
         for item in items:
@@ -217,6 +228,12 @@ def pytest_sessionfinish(session, exitstatus):
         return
     DIR_EJECUCION.mkdir(parents=True, exist_ok=True)
     matriz = cargar_matriz()
+    if SOLO_TARJETA["activo"]:
+        previos = historial.cargar(excluir=EJECUCION)
+        forzar = session.config.getoption("--heredados-aprobados")
+        for caso_id in matriz:
+            if caso_id not in SOLO_TARJETA["ids"] and caso_id not in RESULTADOS:
+                RESULTADOS[caso_id] = historial.heredar(caso_id, previos, forzar)
 
     casos = []
     # 1) Casos fuera de la matriz (ej. happy path de punta a punta)
@@ -238,6 +255,8 @@ def pytest_sessionfinish(session, exitstatus):
         "duracion_total": round((fin - INICIO).total_seconds()),
         "dispositivo": adb.info_dispositivo(),
         "interactivo": settings.INTERACTIVO,
+        "nota": "Solo se ejecutaron los casos del pinpad (tarjeta / NIP); los demás se tomaron de corridas anteriores"
+                if SOLO_TARJETA["activo"] else "",
         "casos": casos,
     }
     (DIR_EJECUCION / "resultados.json").write_text(json.dumps(datos_reporte, ensure_ascii=False, indent=2), encoding="utf-8")

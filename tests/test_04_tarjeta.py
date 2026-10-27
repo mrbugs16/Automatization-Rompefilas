@@ -18,7 +18,7 @@ from config import settings
 from core import adb
 from core.marcadores import SIN_ANIMACION_TARJETA, caso, manual, pendiente
 
-pytestmark = [pytest.mark.tarjeta]
+pytestmark = [pytest.mark.tarjeta, pytest.mark.pinpad]
 
 
 def _luhn(numero):

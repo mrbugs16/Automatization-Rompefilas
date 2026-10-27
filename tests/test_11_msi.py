@@ -14,7 +14,7 @@ import pytest
 from config import settings
 from core.marcadores import SIN_ANIMACION_TARJETA, caso, pendiente
 
-pytestmark = [pytest.mark.msi, pytest.mark.tarjeta]
+pytestmark = [pytest.mark.msi, pytest.mark.tarjeta, pytest.mark.pinpad]
 
 MINIMO = settings.MSI_MONTO_MINIMO
 PLAZO = settings.MSI_PLAZO

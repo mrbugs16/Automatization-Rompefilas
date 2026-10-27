@@ -31,6 +31,7 @@ def _pantallas_de_cobro():
 
 @caso("CP-IC-ROM-002")
 @pytest.mark.tarjeta
+@pytest.mark.pinpad
 def test_CP_IC_ROM_002_doble_toque(flujo, evidencia, registrar_app_pago):
     flujo.ir_a_adeudos(REF_VALIDA["referencia"])
 

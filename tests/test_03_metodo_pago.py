@@ -14,6 +14,7 @@ from core.marcadores import bloqueado, caso
 
 @caso("CP-MP-ROM-001")
 @pytest.mark.tarjeta
+@pytest.mark.pinpad
 def test_CP_MP_ROM_001_tarjeta_en_la_misma_t6(flujo, evidencia, registrar_app_pago):
     estado = flujo.pagar_con_tarjeta(REF_VALIDA["referencia"])
     registrar_app_pago(estado)

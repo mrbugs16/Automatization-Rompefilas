@@ -11,7 +11,7 @@ from config import settings
 from config.datos_prueba import REF_VALIDA
 from core.marcadores import caso
 
-pytestmark = [pytest.mark.tarjeta]
+pytestmark = [pytest.mark.tarjeta, pytest.mark.pinpad]
 
 
 @caso(

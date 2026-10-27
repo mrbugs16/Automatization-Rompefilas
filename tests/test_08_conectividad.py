@@ -16,6 +16,7 @@ pytestmark = [pytest.mark.red]
 
 @caso("CP-CX-ROM-001")
 @pytest.mark.tarjeta
+@pytest.mark.pinpad
 def test_CP_CX_ROM_001_cambio_de_red_durante_cobro(flujo, evidencia, pantalla_cobro):
     try:
         adb.wifi(False)

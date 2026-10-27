@@ -157,6 +157,15 @@ Los casos con tarjeta física corren con `INTERACTIVO=true` (uno por uno, por ej
 $env:INTERACTIVO = "true"; python -m pytest -k HP_ROM_001 --abrir-reporte
 ```
 
+**Solo los casos del pinpad** (marca `pinpad`: happy path, CP-TJ, CP-SG-001/002, CP-MSI, MP-001, CX-001, IC-002,
+CC-004). Los demás casos no se re-ejecutan: el reporte toma su último resultado válido de `evidencias/*` (sin las
+corridas con el servicio caído) con la etiqueta *Corrida AAAAMMDD_HHMMSS* y la evidencia de esa corrida. Con
+`--heredados-aprobados` todos los heredados salen como *Aprobado*.
+
+```powershell
+$env:INTERACTIVO = "true"; python -m pytest --solo-tarjeta --abrir-reporte
+```
+
 Sin tester corren CP-MP-ROM-001 (monto e instrucción en el pinpad), CP-TJ-ROM-003 (se deja expirar el pinpad) y
 CP-TJ-ROM-012 (la suite toca *Cancelar*). **Cada pago aprobado usa una referencia** (se marca `pagada` sola).
 
