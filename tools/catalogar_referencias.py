@@ -20,8 +20,8 @@ def _consultar(flujo, referencia):
     resultado = flujo.consultar()
     if resultado != "p2":
         flujo.identificacion.borrar_todo()
-        return {"estado": "sin_adeudos" if resultado == "sin_adeudos" else "sin_consultar",
-                "notas": f"Consulta: {resultado}"}
+        estado = {"sin_adeudos": "sin_adeudos", "ref_pagada": "pagada"}.get(resultado, "sin_consultar")
+        return {"estado": estado, "notas": f"Consulta: {resultado}"}
     adeudos = flujo.adeudos.adeudos()
     datos = {
         "estado": "disponible",

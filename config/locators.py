@@ -69,6 +69,8 @@ P1_BTN_CONSULTAR = boton("Consultar adeudos")
 P1_BTN_REGRESAR_INICIO = boton("Regresar al inicio")
 P1_BTN_PROBAR_IMPRESORA = boton("Probar impresora")
 P1_MSG_SIN_ADEUDOS = texto("No se encontraron adeudos")
+# v1.6.39: referencia ya pagada -> "Referencia no disponible · Referencia pagada. Esta referencia no tiene adeudos pendientes."
+P1_MSG_REF_PAGADA = texto("Referencia no disponible")
 P1_MSG_SIN_ADEUDOS_DETALLE = contiene("Verifique que su referencia")
 # Tarjeta que decodifica la referencia mientras se captura (ej. 'Impuesto Predial ✓ Completa', '10/16')
 P1_REF_COMPLETA = contiene("Completa")

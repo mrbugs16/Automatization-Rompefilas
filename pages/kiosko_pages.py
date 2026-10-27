@@ -387,11 +387,12 @@ class FlujoKiosko:
             self._captura(f"P1 - Referencia capturada ({len(str(referencia))} dígitos)")
 
     def consultar(self, timeout=None):
-        """Toca 'Consultar adeudos'. Regresa 'p2' | 'sin_adeudos' | 'sin_respuesta'."""
+        """Toca 'Consultar adeudos'. Regresa 'p2' | 'sin_adeudos' | 'ref_pagada' | 'sin_conexion' | 'sin_respuesta'."""
         self.identificacion.consultar()
         try:
             resultado = self.identificacion.esperar_alguno(
-                {"p2": L.P2_BTN_PAGAR, "sin_adeudos": L.P1_MSG_SIN_ADEUDOS, "sin_conexion": L.AVISO_SIN_CONEXION},
+                {"p2": L.P2_BTN_PAGAR, "sin_adeudos": L.P1_MSG_SIN_ADEUDOS, "ref_pagada": L.P1_MSG_REF_PAGADA,
+                 "sin_conexion": L.AVISO_SIN_CONEXION},
                 timeout or settings.TIMEOUT_CONSULTA)
         except TimeoutException:
             resultado = "sin_respuesta"
@@ -407,6 +408,9 @@ class FlujoKiosko:
         self.iniciar()
         self.capturar_referencia(referencia)
         resultado = self.consultar()
+        if resultado == "ref_pagada":
+            # Se pagó fuera de la suite: se corrige el catálogo para que los siguientes casos usen otra
+            referencias.actualizar(str(referencia), estado="pagada", pagada_en="Detectada por la app: 'Referencia pagada'")
         assert resultado == "p2", f"La referencia {referencia} no mostró adeudos (resultado: {resultado})"
         self._captura("P2 - Adeudos del contribuyente")
 

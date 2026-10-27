@@ -139,6 +139,10 @@ def registrar_app_pago(evidencia):
 
 
 def _cerrar_sesion():
+    # No dejar el pinpad pidiendo tarjeta al terminar la corrida: se cierra y Rompefilas queda en el inicio
+    for paquete in settings.PAQUETES_PAGO:
+        adb.shell(f"am force-stop {paquete}", silencioso=True)
+    adb.shell(f"monkey -p {settings.APP_PACKAGE} -c android.intent.category.LAUNCHER 1", silencioso=True)
     if SESION["driver"] is not None:
         try:
             SESION["driver"].quit()

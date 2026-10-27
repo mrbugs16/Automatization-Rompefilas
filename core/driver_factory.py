@@ -17,6 +17,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 
 from config import locators as L
 from config import settings
+from core import adb
 
 
 def crear_driver():
@@ -39,8 +40,9 @@ def sesion_viva(driver):
 
 def reiniciar_app(driver, esperar_inicio=True):
     """Cierra y abre Rompefilas para iniciar cada caso limpio y con el árbol de accesibilidad completo.
-    También cierra la app que haya quedado encima (escáner o módulo de pago de un caso anterior)."""
-    paquetes = [settings.APP_PACKAGE, L.ESCANER_PAQUETE]
+    Antes cierra por ADB el módulo de pago y el escáner: el pinpad real (com.memphis.app.dev) corre en su propia
+    tarea y, si un caso lo deja pidiendo tarjeta, queda encima de Rompefilas aunque se reabra la app."""
+    paquetes = [settings.APP_PACKAGE, L.ESCANER_PAQUETE, *settings.PAQUETES_PAGO]
     try:
         encima = driver.current_package
         if encima and encima not in paquetes and "launcher" not in encima and encima != "com.android.systemui":
@@ -48,10 +50,7 @@ def reiniciar_app(driver, esperar_inicio=True):
     except Exception:
         pass
     for paquete in paquetes:
-        try:
-            driver.terminate_app(paquete)
-        except Exception:
-            pass
+        adb.shell(f"am force-stop {paquete}", silencioso=True)
     time.sleep(1)
     driver.activate_app(settings.APP_PACKAGE)
     if esperar_inicio:

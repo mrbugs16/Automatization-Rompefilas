@@ -22,6 +22,8 @@ APPIUM_URL = os.getenv("APPIUM_URL", "http://127.0.0.1:4723")
 T6_UDID = os.getenv("T6_UDID", "")  # vacío = primer dispositivo de 'adb devices'
 APP_PACKAGE = os.getenv("APP_PACKAGE", "com.exos.kiosko.rompefilas")
 APP_ACTIVITY = os.getenv("APP_ACTIVITY", "com.exos.kiosko.MainActivity")
+# Apps del módulo de pago que se cierran entre casos (pinpad real de Memphis y simulador)
+PAQUETES_PAGO = [p for p in os.getenv("PAQUETES_PAGO", "com.memphis.app.dev,com.memphis.pinpadsimulator").split(",") if p]
 
 CAPABILITIES = {
     "platformName": "Android",
