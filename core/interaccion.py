@@ -50,11 +50,14 @@ def pedir_tarjeta(instruccion, referencia="", monto=None, hasta=None, timeout=No
     return pedir_accion(instruccion, hasta=hasta, timeout=timeout, evidencia=evidencia, pasos=pasos)
 
 
-def pedir_nip(hasta=None, timeout=None, evidencia=None):
-    """Indicación para capturar el NIP en el lector (mínimo 3 min, ver TIMEOUT_NIP)."""
+def pedir_nip(hasta=None, timeout=None, evidencia=None, instruccion=""):
+    """Indicación para capturar el NIP en el lector (mínimo 3 min, ver TIMEOUT_NIP).
+    'instruccion' es la del caso (ej. 'capture un NIP INCORRECTO'): se repite para que no se capture el NIP real."""
     timeout = max(timeout or settings.TIMEOUT_NIP, 180)
     pasos = [
         "1) CAPTURE el NIP en el teclado del lector (las teclas cambian de lugar) y presione 'Aceptar'",
         "2) NO retire la tarjeta hasta que el pinpad muestre 'Ya puedes retirar tu tarjeta'",
     ]
+    if instruccion:
+        pasos.insert(0, f"⚠ ESTE CASO: {instruccion}")
     return pedir_accion("Ingrese el NIP en el lector.", hasta=hasta, timeout=timeout, evidencia=evidencia, pasos=pasos)

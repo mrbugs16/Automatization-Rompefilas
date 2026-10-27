@@ -28,8 +28,17 @@ def boton_contiene(t):
     return X, f'//android.widget.Button[contains(@text, "{t}")]'
 
 
+def desc_contiene(t):
+    """Texto en @text o en @content-desc (el pinpad de Memphis es Flutter y solo llena @content-desc)."""
+    return X, f'//*[contains(@text, "{t}") or contains(@content-desc, "{t}")]'
+
+
+def desc(t):
+    return X, f'//*[@text="{t}" or @content-desc="{t}"]'
+
+
 def _cualquiera(*textos):
-    return X, "//*[" + " or ".join(f'contains(@text, "{t}")' for t in textos) + "]"
+    return X, "//*[" + " or ".join(f'contains(@text, "{t}") or contains(@content-desc, "{t}")' for t in textos) + "]"
 
 
 BOTONES = (X, "//android.widget.Button")
@@ -131,19 +140,20 @@ P4_TARJETA_NO_ACEPTADA = _cualquiera("no aceptada", "no soportada", "vencida")
 P4_BTN_CANCELAR_COBRO = (X, '//*[@text="Cancelar" or @text="CANCELAR" or @content-desc="Cancelar"]')
 P4_SIN_CONEXION_TERMINAL = contiene("No se pudo conectar con la terminal")
 
-# Pinpad real de Memphis (27/10/2026): pantallas del módulo de pago (otra app; transición de 0.5 a 1.5 s)
-PIN_INSERTAR = contiene("inserta o desliza tu tarjeta")           # 'Acerca, inserta o desliza tu tarjeta'
-PIN_LEYENDO = contiene("Leyendo tarjeta")                          # 'Leyendo tarjeta...'
-PIN_MENSUALIDADES = contiene("Cuántas mensualidades")              # hoja '¿Cuántas mensualidades?' (≥ $1,000)
-PIN_OPC_CONTADO = contiene("Sin mensualidades")                    # 'Sin mensualidades · Pago de contado'
-PIN_OPC_6MSI = contiene("6 meses sin intereses")                   # '6 meses sin intereses · MSI'
-PIN_NIP = contiene("Ingresa tu PIN")                               # 'Ingresa tu PIN en el lector'
-PIN_APROBADA = texto("Transacción aprobada")
-PIN_DECLINADA = texto("Transacción declinada")
-PIN_TIEMPO_AGOTADO = contiene("Tiempo de espera agotado")          # 'No se detectó ninguna tarjeta.'
-PIN_NIP_CANCELADO = contiene("Ingreso de PIN cancelado")
-PIN_BTN_CANCELAR = (X, '//*[@text="Cancelar"]')
-PIN_BTN_ACEPTAR = (X, '//*[@text="Aceptar"]')
+# Pinpad real de Memphis (27/10/2026): pantallas del módulo de pago (otra app; transición de 0.5 a 1.5 s).
+# Es Flutter: el texto visible está en @content-desc. La pantalla del NIP es del SDK de Topwise y no expone textos.
+PIN_INSERTAR = desc_contiene("inserta o desliza tu tarjeta")           # 'Acerca, inserta o desliza tu tarjeta'
+PIN_LEYENDO = desc_contiene("Leyendo tarjeta")                          # 'Leyendo tarjeta...'
+PIN_MENSUALIDADES = desc_contiene("Cuántas mensualidades")              # hoja '¿Cuántas mensualidades?' (≥ $1,000)
+PIN_OPC_CONTADO = desc_contiene("Sin mensualidades")                    # 'Sin mensualidades · Pago de contado'
+PIN_OPC_6MSI = desc_contiene("6 meses sin intereses")                   # '6 meses sin intereses · MSI'
+PIN_NIP = desc_contiene("Ingresa tu PIN")                               # 'Ingresa tu PIN en el lector'
+PIN_APROBADA = desc_contiene("Transacción aprobada")  # content-desc trae la cuenta regresiva
+PIN_DECLINADA = desc_contiene("Transacción declinada")
+PIN_TIEMPO_AGOTADO = desc_contiene("Tiempo de espera agotado")          # 'No se detectó ninguna tarjeta.'
+PIN_NIP_CANCELADO = desc_contiene("Ingreso de PIN cancelado")
+PIN_BTN_CANCELAR = desc("Cancelar")
+PIN_BTN_ACEPTAR = desc("Aceptar")
 PIN_ETIQUETAS_RESUMEN = ("Monto", "Mensualidades")                 # recuadro 'Resumen' (valor = texto siguiente)
 
 # Simulador de pinpad de Memphis (v1.6.37): solo permite elegir el resultado

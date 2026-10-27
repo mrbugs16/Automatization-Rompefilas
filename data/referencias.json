@@ -310,7 +310,7 @@
     },
     {
       "referencia": "1009901042737901",
-      "estado": "disponible",
+      "estado": "pagada",
       "contribuyente": "JOSE ISRAEL . GALINDO RAMOS",
       "adeudos": 2,
       "monto": 1069.76,
@@ -318,11 +318,12 @@
         "PREDIAL URBANO $643.76",
         "LIMPIA INMUEBLES HABITACIONAL $426.00"
       ],
-      "consultada": "15/10/2026 10:31"
+      "consultada": "15/10/2026 10:31",
+      "pagada_en": "Detectada por la app: 'Referencia pagada'"
     },
     {
       "referencia": "1009901046043601",
-      "estado": "disponible",
+      "estado": "pagada",
       "contribuyente": "ISRAEL MORENO HERNANDEZ",
       "adeudos": 2,
       "monto": 969.0,
@@ -330,11 +331,13 @@
         "PREDIAL URBANO $543.00",
         "LIMPIA INMUEBLES HABITACIONAL $426.00"
       ],
-      "consultada": "15/10/2026 10:31"
+      "consultada": "15/10/2026 10:31",
+      "pagada_en": "CP-TJ-ROM-001 (27/10/2026: Transacción aprobada en el pinpad; la suite no la leyó)",
+      "fecha_pago": "27/10/2026 15:20"
     },
     {
       "referencia": "1009901042800001",
-      "estado": "disponible",
+      "estado": "pagada",
       "contribuyente": "ISRAEL . GUILLERMO SANCHEZ",
       "adeudos": 4,
       "monto": 7502.91,
@@ -344,11 +347,13 @@
         "APROVECHAMIENTOS POR RECARGOS S/DERECHOS LIMPIA $481.36",
         "LIMPIA INMUEBLES HABITACIONAL $2,602.50"
       ],
-      "consultada": "15/10/2026 10:32"
+      "consultada": "15/10/2026 10:32",
+      "pagada_en": "HP-ROM-001",
+      "fecha_pago": "27/10/2026 15:25"
     },
     {
       "referencia": "1009901042755001",
-      "estado": "disponible",
+      "estado": "pagada",
       "contribuyente": "ISRAEL FLORES HUERTA",
       "adeudos": 4,
       "monto": 4172.96,
@@ -358,11 +363,13 @@
         "APROVECHAMIENTOS POR RECARGOS S/DERECHOS LIMPIA $239.80",
         "LIMPIA INMUEBLES HABITACIONAL $1,596.00"
       ],
-      "consultada": "15/10/2026 10:32"
+      "consultada": "15/10/2026 10:32",
+      "pagada_en": "CP-TJ-ROM-001",
+      "fecha_pago": "27/10/2026 15:27"
     },
     {
       "referencia": "1009901045659201",
-      "estado": "disponible",
+      "estado": "pagada",
       "contribuyente": "ISRAEL ALEJANDRO . LORANCA DIAZ",
       "adeudos": 4,
       "monto": 14278.14,
@@ -372,11 +379,13 @@
         "APROVECHAMIENTOS POR RECARGOS S/DERECHOS LIMPIA $481.36",
         "LIMPIA INMUEBLES HABITACIONAL $2,602.50"
       ],
-      "consultada": "15/10/2026 10:33"
+      "consultada": "15/10/2026 10:33",
+      "pagada_en": "CP-TJ-ROM-002",
+      "fecha_pago": "27/10/2026 15:29"
     },
     {
       "referencia": "1009901043218801",
-      "estado": "disponible",
+      "estado": "pagada",
       "contribuyente": "ISRAEL SILVA JIMENEZ",
       "adeudos": 2,
       "monto": 1245.08,
@@ -384,11 +393,13 @@
         "PREDIAL URBANO $819.08",
         "LIMPIA INMUEBLES HABITACIONAL $426.00"
       ],
-      "consultada": "15/10/2026 10:33"
+      "consultada": "15/10/2026 10:33",
+      "pagada_en": "CP-TJ-ROM-004",
+      "fecha_pago": "27/10/2026 15:31"
     },
     {
       "referencia": "1009901044917101",
-      "estado": "disponible",
+      "estado": "pagada",
       "contribuyente": "RODRIGO ISRAEL . ANDRACA HUERTA",
       "adeudos": 4,
       "monto": 17142.02,
@@ -398,11 +409,13 @@
         "APROVECHAMIENTOS POR RECARGOS S/DERECHOS LIMPIA $481.36",
         "LIMPIA INMUEBLES HABITACIONAL $4,880.08"
       ],
-      "consultada": "15/10/2026 10:34"
+      "consultada": "15/10/2026 10:34",
+      "pagada_en": "CP-TJ-ROM-005",
+      "fecha_pago": "27/10/2026 15:33"
     },
     {
       "referencia": "1009901043641201",
-      "estado": "disponible",
+      "estado": "pagada",
       "contribuyente": "ISRAEL . CASTAEDA SANCHEZ",
       "adeudos": 2,
       "monto": 1729.97,
@@ -410,11 +423,13 @@
         "PREDIAL URBANO $1,303.97",
         "LIMPIA INMUEBLES HABITACIONAL $426.00"
       ],
-      "consultada": "15/10/2026 10:34"
+      "consultada": "15/10/2026 10:34",
+      "pagada_en": "CP-TJ-ROM-006",
+      "fecha_pago": "27/10/2026 15:34"
     },
     {
       "referencia": "1009901043031801",
-      "estado": "disponible",
+      "estado": "pagada",
       "contribuyente": "AGUSTIN ISRAEL . LOZANO CAZARES",
       "adeudos": 2,
       "monto": 1325.97,
@@ -422,11 +437,13 @@
         "PREDIAL URBANO $899.97",
         "LIMPIA INMUEBLES HABITACIONAL $426.00"
       ],
-      "consultada": "15/10/2026 10:35"
+      "consultada": "15/10/2026 10:35",
+      "pagada_en": "CP-TJ-ROM-007",
+      "fecha_pago": "27/10/2026 15:36"
     },
     {
       "referencia": "1009901026005301",
-      "estado": "disponible",
+      "estado": "pagada",
       "contribuyente": "IRAN ISRAEL . ARTEAGA RODRIGUEZ",
       "adeudos": 4,
       "monto": 15380.1,
@@ -436,11 +453,13 @@
         "APROVECHAMIENTOS POR RECARGOS S/DERECHOS LIMPIA $481.36",
         "LIMPIA INMUEBLES HABITACIONAL $3,228.26"
       ],
-      "consultada": "15/10/2026 10:35"
+      "consultada": "15/10/2026 10:35",
+      "pagada_en": "CP-TJ-ROM-008",
+      "fecha_pago": "27/10/2026 15:38"
     },
     {
       "referencia": "1009901035033501",
-      "estado": "disponible",
+      "estado": "pagada",
       "contribuyente": "ISRAEL . YLLANES BELLO",
       "adeudos": 4,
       "monto": 4405.71,
@@ -450,11 +469,13 @@
         "APROVECHAMIENTOS POR RECARGOS S/DERECHOS LIMPIA $150.76",
         "LIMPIA INMUEBLES HABITACIONAL $1,225.00"
       ],
-      "consultada": "15/10/2026 10:36"
+      "consultada": "15/10/2026 10:36",
+      "pagada_en": "CP-TJ-ROM-009",
+      "fecha_pago": "27/10/2026 15:39"
     },
     {
       "referencia": "1009901030698501",
-      "estado": "disponible",
+      "estado": "pagada",
       "contribuyente": "JESUS ISRAEL . ALCANTARA ALEMAN",
       "adeudos": 2,
       "monto": 3154.61,
@@ -462,11 +483,13 @@
         "PREDIAL URBANO $2,728.61",
         "LIMPIA INMUEBLES HABITACIONAL $426.00"
       ],
-      "consultada": "15/10/2026 10:37"
+      "consultada": "15/10/2026 10:37",
+      "pagada_en": "CP-TJ-ROM-010",
+      "fecha_pago": "27/10/2026 15:41"
     },
     {
       "referencia": "1009901057244801",
-      "estado": "disponible",
+      "estado": "pagada",
       "contribuyente": "SALIM ISRAEL . MACIP SALINAS",
       "adeudos": 4,
       "monto": 4756.38,
@@ -476,77 +499,111 @@
         "APROVECHAMIENTOS POR RECARGOS S/DERECHOS LIMPIA $139.86",
         "LIMPIA INMUEBLES HABITACIONAL $2,038.00"
       ],
-      "consultada": "15/10/2026 10:37"
+      "consultada": "15/10/2026 10:37",
+      "pagada_en": "CP-SG-ROM-001",
+      "fecha_pago": "27/10/2026 15:47"
     },
     {
       "referencia": "1009901046843701",
-      "estado": "disponible",
+      "estado": "pagada",
       "contribuyente": "ISRAEL . HERNANDEZ FRANCISCO",
-      "adeudos": 4,
-      "monto": 10434.5,
+      "adeudos": 6,
+      "monto": 8507.84,
       "conceptos": [
         "PREDIAL URBANO $3,331.24",
         "APROVECHAMIENTOS POR RECARGOS S/IMPUESTOS PREDIAL $585.17",
         "APROVECHAMIENTOS POR RECARGOS S/DERECHOS LIMPIA $979.91",
+        "CONDONACIÓN DE APROVECHAMIENTOS POR RECARGOS LIMPIA -$1,204.49",
+        "CONDONACIÓN DE APROVECHAMIENTOS POR RECARGOS PREDIAL -$722.17",
         "LIMPIA INMUEBLES HABITACIONAL $5,538.18"
       ],
-      "consultada": "15/10/2026 10:38"
+      "consultada": "27/10/2026 15:51",
+      "pagada_en": "CP-MSI-ROM-001",
+      "fecha_pago": "27/10/2026 15:59"
     },
     {
       "referencia": "1009901046847401",
-      "estado": "disponible",
+      "estado": "pagada",
       "contribuyente": "ISRAEL . FERNANDEZ BRAVO",
-      "adeudos": 4,
-      "monto": 17728.59,
+      "adeudos": 6,
+      "monto": 15779.71,
       "conceptos": [
         "PREDIAL URBANO $6,042.94",
         "APROVECHAMIENTOS POR RECARGOS S/IMPUESTOS PREDIAL $718.02",
         "APROVECHAMIENTOS POR RECARGOS S/DERECHOS LIMPIA $1,172.99",
+        "CONDONACIÓN DE APROVECHAMIENTOS POR RECARGOS LIMPIA -$1,204.49",
+        "CONDONACIÓN DE APROVECHAMIENTOS POR RECARGOS PREDIAL -$744.39",
         "LIMPIA INMUEBLES HABITACIONAL $9,794.64"
       ],
-      "consultada": "15/10/2026 10:38"
+      "consultada": "27/10/2026 15:52",
+      "pagada_en": "CP-MSI-ROM-004",
+      "fecha_pago": "27/10/2026 16:03"
     },
     {
       "referencia": "1009901046254601",
-      "estado": "disponible",
+      "estado": "pagada",
       "contribuyente": "IGNACIO ISRAEL . TORRES FUENTES",
-      "adeudos": 4,
-      "monto": 22229.94,
+      "adeudos": 6,
+      "monto": 20192.81,
       "conceptos": [
         "PREDIAL URBANO $8,360.60",
         "APROVECHAMIENTOS POR RECARGOS S/IMPUESTOS PREDIAL $803.15",
         "APROVECHAMIENTOS POR RECARGOS S/DERECHOS LIMPIA $1,172.99",
+        "CONDONACIÓN DE APROVECHAMIENTOS POR RECARGOS LIMPIA -$1,204.49",
+        "CONDONACIÓN DE APROVECHAMIENTOS POR RECARGOS PREDIAL -$832.64",
         "LIMPIA INMUEBLES HABITACIONAL $11,893.20"
       ],
-      "consultada": "15/10/2026 10:39"
+      "consultada": "27/10/2026 15:52",
+      "pagada_en": "CP-MSI-ROM-005",
+      "fecha_pago": "27/10/2026 16:04"
     },
     {
       "referencia": "1009901046842101",
-      "estado": "disponible",
+      "estado": "pagada",
       "contribuyente": "ISRAEL . CORTEZ ROQUE",
-      "adeudos": 4,
-      "monto": 20965.37,
+      "adeudos": 6,
+      "monto": 19044.35,
       "conceptos": [
         "PREDIAL URBANO $7,208.03",
         "APROVECHAMIENTOS POR RECARGOS S/IMPUESTOS PREDIAL $691.15",
         "APROVECHAMIENTOS POR RECARGOS S/DERECHOS LIMPIA $1,172.99",
+        "CONDONACIÓN DE APROVECHAMIENTOS POR RECARGOS LIMPIA -$1,204.49",
+        "CONDONACIÓN DE APROVECHAMIENTOS POR RECARGOS PREDIAL -$716.53",
         "LIMPIA INMUEBLES HABITACIONAL $11,893.20"
       ],
-      "consultada": "15/10/2026 10:39"
+      "consultada": "27/10/2026 15:53",
+      "pagada_en": "CP-MSI-ROM-006",
+      "fecha_pago": "27/10/2026 16:06"
     },
     {
       "referencia": "1009901045660701",
       "estado": "disponible",
       "contribuyente": "ISRAEL . CASTRO GARCIA",
-      "adeudos": 4,
-      "monto": 11965.6,
+      "adeudos": 6,
+      "monto": 10045.72,
       "conceptos": [
         "PREDIAL URBANO $3,759.89",
         "APROVECHAMIENTOS POR RECARGOS S/IMPUESTOS PREDIAL $690.06",
         "APROVECHAMIENTOS POR RECARGOS S/DERECHOS LIMPIA $1,172.99",
+        "CONDONACIÓN DE APROVECHAMIENTOS POR RECARGOS LIMPIA -$1,204.49",
+        "CONDONACIÓN DE APROVECHAMIENTOS POR RECARGOS PREDIAL -$715.39",
         "LIMPIA INMUEBLES HABITACIONAL $6,342.66"
       ],
-      "consultada": "15/10/2026 10:40"
+      "consultada": "27/10/2026 15:53"
+    },
+    {
+      "referencia": "1009901054807901",
+      "estado": "pagada",
+      "contribuyente": "EDWIN JOSE . PRADO PEREZ",
+      "adeudos": 2,
+      "monto": 997.32,
+      "conceptos": [
+        "PREDIAL URBANO $571.32",
+        "LIMPIA INMUEBLES HABITACIONAL $426.00"
+      ],
+      "consultada": "27/10/2026 15:54",
+      "pagada_en": "CP-MSI-ROM-002",
+      "fecha_pago": "27/10/2026 16:01"
     }
   ]
 }

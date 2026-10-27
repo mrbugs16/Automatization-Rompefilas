@@ -443,7 +443,12 @@ class FlujoKiosko:
             return "aprobado"
         if "No se pudo procesar el pago" in textos:
             return "rechazado"
-        return self.pinpad.fase(textos)
+        fase = self.pinpad.fase(textos)
+        # 'Ingresa tu PIN en el lector' es la pantalla SEGURA del SDK de Topwise: no expone ningún texto,
+        # solo se reconoce por su paquete en primer plano
+        if fase is None and f'package="{L.ESCANER_PAQUETE}"' in self.driver.page_source:
+            return "nip"
+        return fase
 
     def _esperar_estado(self, aceptados, timeout):
         """Espera hasta que el estado del cobro sea uno de 'aceptados'. Regresa el estado (o None)."""
@@ -501,9 +506,9 @@ class FlujoKiosko:
 
         # 5) 'Ingresa tu PIN en el lector' (3 min)
         if estado == "nip":
-            self.cobro["resumen_nip"] = self.pinpad.resumen()
+            self.cobro["resumen_nip"] = self.pinpad.resumen()  # vacío en la pantalla segura de Topwise
             self._fase("nip", f"Pinpad - Ingresa tu PIN {self.cobro['resumen_nip']}")
-            estado = pedir_nip(evidencia=self.ev, timeout=settings.TIMEOUT_NIP,
+            estado = pedir_nip(evidencia=self.ev, timeout=settings.TIMEOUT_NIP, instruccion=instruccion,
                                hasta=lambda: self._esperar_estado(finales, 0))
             if not estado:
                 return self._despues_del_cobro("sin_resultado")

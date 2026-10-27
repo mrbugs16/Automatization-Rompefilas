@@ -53,6 +53,7 @@ def pytest_configure(config):
     print(f"\nT6: {serial} · Rompefilas v{adb.version_app() or '?'} · Modo {'INTERACTIVO' if settings.INTERACTIVO else 'desatendido'}")
 
 
+@pytest.hookimpl(tryfirst=True)  # antes del -k: SOLO_TARJETA["ids"] guarda todos los casos del pinpad
 def pytest_collection_modifyitems(config, items):
     if config.getoption("--solo-tarjeta"):
         tarjeta = [i for i in items if i.get_closest_marker("pinpad")]
@@ -231,9 +232,15 @@ def pytest_sessionfinish(session, exitstatus):
     if SOLO_TARJETA["activo"]:
         previos = historial.cargar(excluir=EJECUCION)
         forzar = session.config.getoption("--heredados-aprobados")
-        for caso_id in matriz:
-            if caso_id not in SOLO_TARJETA["ids"] and caso_id not in RESULTADOS:
+        for caso_id in [*matriz, "HP-ROM-001"]:
+            if caso_id in RESULTADOS:
+                continue
+            if caso_id not in SOLO_TARJETA["ids"]:
                 RESULTADOS[caso_id] = historial.heredar(caso_id, previos, forzar)
+            elif caso_id in previos:  # caso del pinpad que ya se corrió en otra corrida con tarjeta (-k)
+                RESULTADOS[caso_id] = historial.heredar(caso_id, previos)
+        if "HP-ROM-001" in RESULTADOS and "meta" not in RESULTADOS["HP-ROM-001"]:
+            RESULTADOS["HP-ROM-001"]["meta"] = {}
 
     casos = []
     # 1) Casos fuera de la matriz (ej. happy path de punta a punta)

@@ -74,7 +74,8 @@ class BasePage:
 
     def textos(self):
         """Todos los textos visibles en pantalla, en orden (de una sola lectura del XML)."""
-        return [t.strip() for _, t, _, _ in self.nodos() if t.strip()]
+        # Un content-desc de Flutter (pinpad) puede traer varias líneas (ej. 'Transacción aprobada' y la cuenta regresiva)
+        return [linea.strip() for _, t, _, _ in self.nodos() for linea in t.splitlines() if linea.strip()]
 
     def contiene_texto(self, fragmento):
         return any(fragmento in t for t in self.textos())
@@ -86,7 +87,9 @@ class BasePage:
             attrs = dict(re.findall(r'([\w:-]+)="([^"]*)"', n.group(2)))
             m = _BOUNDS.match(attrs.get("bounds", ""))
             if m:
-                resultado.append((n.group(1), html.unescape(attrs.get("text", "")), attrs.get("clickable") == "true",
+                # El pinpad de Memphis (Flutter) no llena @text: su texto visible está en @content-desc
+                texto = attrs.get("text", "") or attrs.get("content-desc", "")
+                resultado.append((n.group(1), html.unescape(texto), attrs.get("clickable") == "true",
                                   tuple(int(v) for v in m.groups())))
         return resultado
 
