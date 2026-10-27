@@ -11,15 +11,20 @@ from selenium.common.exceptions import TimeoutException
 from config import locators as L
 from config import settings
 from core import referencias
-from core.interaccion import pedir_tarjeta
+from core.interaccion import pedir_nip, pedir_tarjeta
 from core.marcadores import SIN_ANIMACION_TARJETA, pendiente, requiere_tester
 from pages.base_page import BasePage
 
 
 def a_monto(texto):
-    """'$4,452.55' -> 4452.55 (None si no hay monto)."""
-    m = re.search(r"\$\s*([\d,]+\.\d{2})", texto or "")
-    return float(m.group(1).replace(",", "")) if m else None
+    """'$4,452.55' -> 4452.55 · '-$494.28' -> -494.28 (condonaciones) · None si no hay monto."""
+    m = re.search(r"(-?)\s*\$\s*([\d,]+\.\d{2})", texto or "")
+    return (-1 if m.group(1) else 1) * float(m.group(2).replace(",", "")) if m else None
+
+
+def es_monto(texto):
+    """Texto que es solo un monto ('$1,596.00' o '-$494.28')."""
+    return bool(re.fullmatch(r"-?\s*\$\s*[\d,]+\.\d{2}", (texto or "").strip()))
 
 
 class InicioPage(BasePage):
@@ -110,7 +115,7 @@ class AdeudosPage(BasePage):
         lista = []
         for i, t in enumerate(textos):
             monto = a_monto(t)
-            if monto is not None and t.strip().startswith("$") and i + 1 < len(textos):
+            if monto is not None and es_monto(t) and i + 1 < len(textos):
                 lista.append({"concepto": textos[i + 1], "monto": monto, "texto_monto": t})
         return lista
 
@@ -183,10 +188,21 @@ class PagoPage(BasePage):
             time.sleep(0.5)
         return "sin_respuesta"
 
+    def detalle_error(self):
+        """Texto que Rompefilas muestra debajo de 'No se pudo procesar el pago' (ej. 'Error al capturar el nip.')."""
+        textos = self.textos()
+        if "No se pudo procesar el pago" in textos:
+            i = textos.index("No se pudo procesar el pago")
+            return textos[i + 1] if i + 1 < len(textos) else ""
+        return ""
+
     def mensaje_error(self):
-        return " · ".join(t for t in self.textos() if t in (
-            "No se pudo procesar el pago", "No se pudo comunicar con la aplicación de pago.",
-            "No se realizó ningún cargo a su tarjeta")) or ""
+        textos = self.textos()
+        if "No se pudo procesar el pago" not in textos:
+            return ""
+        partes = ["No se pudo procesar el pago", self.detalle_error()]
+        partes += [t for t in textos if t.startswith("No se realizó ningún cargo")]
+        return " · ".join(t for t in partes if t)
 
     def intentar_de_nuevo(self):
         self.tocar(L.P4_BTN_INTENTAR)
@@ -216,6 +232,43 @@ class PagoPage(BasePage):
             return self.esperar_alguno(opciones, timeout)
         except TimeoutException:
             return "sin_resultado"
+
+
+class PinpadPage(BasePage):
+    """Pinpad real de Memphis (otra app): inserción, lectura, mensualidades, NIP y resultado."""
+
+    # Fase de la pantalla según sus textos. El orden importa: la hoja de mensualidades aparece ENCIMA de
+    # 'Leyendo tarjeta...' y el resultado del pinpad tapa todo lo demás.
+    FASES = (
+        ("pin_aprobada", ("Transacción aprobada",)),
+        ("pin_tiempo_agotado", ("Tiempo de espera agotado",)),
+        ("pin_declinada", ("Transacción declinada",)),
+        ("pin_nip_cancelado", ("Ingreso de PIN cancelado",)),
+        ("mensualidades", ("Cuántas mensualidades",)),
+        ("nip", ("Ingresa tu PIN",)),
+        ("leyendo", ("Leyendo tarjeta",)),
+        ("insertar", ("inserta o desliza tu tarjeta",)),
+    )
+
+    def fase(self, textos=None):
+        textos = textos if textos is not None else self.textos()
+        unido = " | ".join(textos)
+        return next((nombre for nombre, claves in self.FASES if any(c in unido for c in claves)), None)
+
+    def resumen(self, textos=None):
+        """{'Monto': '$8935.09', 'Mensualidades': '6'} del recuadro 'Resumen'."""
+        textos = textos if textos is not None else self.textos()
+        return {t: textos[i + 1] for i, t in enumerate(textos) if t in L.PIN_ETIQUETAS_RESUMEN and i + 1 < len(textos)}
+
+    def opciones_de_pago(self):
+        return [t for t in self.textos() if "mensualidades" in t.lower() or "meses sin intereses" in t.lower()]
+
+    def elegir_plan(self, plan):
+        """plan: 'contado' (Sin mensualidades) | '6msi' (6 meses sin intereses)."""
+        self.tocar(L.PIN_OPC_6MSI if plan == "6msi" else L.PIN_OPC_CONTADO)
+
+    def cancelar(self):
+        self.tocar(L.PIN_BTN_CANCELAR)
 
 
 class ReciboPage(BasePage):
@@ -282,7 +335,9 @@ class FlujoKiosko:
         self.metodo = MetodoPage(driver)
         self.pago = PagoPage(driver)
         self.recibo = ReciboPage(driver)
+        self.pinpad = PinpadPage(driver)
         self.inactividad = InactividadModal(driver)
+        self.cobro = {}  # lo que pasó en el pinpad en el último cobro (fases, plan ofrecido/elegido, resumen)
         self.estados_redundantes = False  # CP-RC-ROM-007
         self.t_inicio = None  # momento en que se tocó 'Toque para iniciar' (CP-ES-ROM-002)
 
@@ -372,21 +427,127 @@ class FlujoKiosko:
         self._captura(f"P4 - Respuesta al elegir Tarjeta: {estado}")
         return estado
 
-    def esperar_tarjeta_del_tester(self, instruccion, timeout=None):
-        """Con el módulo de pago abierto, pide al tester la acción con la tarjeta y espera el resultado
-        (aprobado | rechazado | tiempo_agotado | nip_incorrecto | no_aceptada | sin_resultado)."""
-        def _resultado():
-            r = self.pago.esperar_resultado(2)
-            return r if r != "sin_resultado" else False
-        resultado = pedir_tarjeta(instruccion, referencia=getattr(self.ev, "referencia", ""),
-                                  monto=getattr(self.ev, "monto", None), hasta=_resultado,
-                                  timeout=timeout, evidencia=self.ev) or "sin_resultado"
+    # ---------- pinpad real ----------
+    FINALES_APP = ("aprobado", "rechazado")
+    FINALES_PINPAD = ("pin_aprobada", "pin_tiempo_agotado", "pin_declinada", "pin_nip_cancelado")
+
+    def estado_cobro(self):
+        """Estado actual del cobro, sea en Rompefilas o en el pinpad (una sola lectura de la pantalla):
+        aprobado | rechazado (Rompefilas) · fase del pinpad (PinpadPage.FASES) · None."""
+        textos = self.pago.textos()
+        if "¡Pago exitoso!" in textos or "Pago exitoso" in textos:
+            return "aprobado"
+        if "No se pudo procesar el pago" in textos:
+            return "rechazado"
+        return self.pinpad.fase(textos)
+
+    def _esperar_estado(self, aceptados, timeout):
+        """Espera hasta que el estado del cobro sea uno de 'aceptados'. Regresa el estado (o None)."""
+        fin = time.time() + timeout
+        while True:
+            estado = self.estado_cobro()
+            if estado in aceptados:
+                return estado
+            if time.time() >= fin:
+                return None
+            time.sleep(0.5)
+
+    def _fase(self, nombre, descripcion):
+        self.cobro.setdefault("fases", []).append(nombre)
+        self._captura(descripcion)
+
+    def esperar_tarjeta_del_tester(self, instruccion, plan="contado", timeout=None):
+        """Con el pinpad real abierto guía el cobro: tarjeta (3 min) -> lectura -> mensualidades (>= $1,000; la suite
+        elige 'plan': 'contado' o '6msi') -> NIP (3 min) -> resultado del pinpad -> resultado en Rompefilas.
+        Regresa aprobado | rechazado | tiempo_agotado | nip_cancelado | sin_resultado (detalle en self.cobro)."""
+        self.cobro = {"fases": [], "plan_ofrecido": False, "opciones": [], "plan_elegido": "", "resumen_nip": {}}
+        finales = self.FINALES_APP + self.FINALES_PINPAD
+        referencia, monto = getattr(self.ev, "referencia", ""), getattr(self.ev, "monto", None)
+
+        # 1) Pantalla 'Acerca, inserta o desliza tu tarjeta'
+        estado = self._esperar_estado(("insertar", "leyendo", "mensualidades", "nip") + finales,
+                                      settings.TIMEOUT_TRANSICION_PINPAD)
+        if estado == "insertar":
+            self.cobro["monto_pinpad"] = self.pinpad.resumen().get("Monto", "")
+            self._fase("insertar", f"Pinpad - Acerca, inserta o desliza tu tarjeta (monto {self.cobro['monto_pinpad']})")
+
+            # 2) El tester presenta la tarjeta (3 min)
+            estado = pedir_tarjeta(instruccion, referencia=referencia, monto=monto, evidencia=self.ev,
+                                   timeout=timeout or settings.TIMEOUT_TARJETA,
+                                   hasta=lambda: self._esperar_estado(("leyendo", "mensualidades", "nip") + finales, 0))
+        if not estado:
+            return self._despues_del_cobro("sin_resultado")
+
+        # 3) 'Leyendo tarjeta...'
+        if estado == "leyendo":
+            self._fase("leyendo", "Pinpad - Leyendo tarjeta")
+            estado = self._esperar_estado(("mensualidades", "nip") + finales, 60)
+
+        # 4) '¿Cuántas mensualidades?' (montos >= $1,000): la suite elige el plan
+        if estado == "mensualidades":
+            self.cobro["plan_ofrecido"] = True
+            self.cobro["opciones"] = self.pinpad.opciones_de_pago()
+            self._fase("mensualidades", "Pinpad - ¿Cuántas mensualidades?")
+            self.pinpad.elegir_plan(plan)
+            self.cobro["plan_elegido"] = plan
+            if self.ev:
+                self.ev.nota("Plan elegido por la suite: "
+                             + ("6 meses sin intereses" if plan == "6msi" else "Sin mensualidades (pago de contado)"))
+            estado = self._esperar_estado(("nip",) + finales, 60)
+
+        # 5) 'Ingresa tu PIN en el lector' (3 min)
+        if estado == "nip":
+            self.cobro["resumen_nip"] = self.pinpad.resumen()
+            self._fase("nip", f"Pinpad - Ingresa tu PIN {self.cobro['resumen_nip']}")
+            estado = pedir_nip(evidencia=self.ev, timeout=settings.TIMEOUT_NIP,
+                               hasta=lambda: self._esperar_estado(finales, 0))
+            if not estado:
+                return self._despues_del_cobro("sin_resultado")
+
+        # 6) Resultado en el pinpad (dura poco) y después en Rompefilas
+        estado_pinpad = ""
+        if estado in self.FINALES_PINPAD:
+            estado_pinpad = estado
+            self._fase(estado, "Pinpad - " + estado.replace("pin_", "").replace("_", " "))
+            estado = self._esperar_estado(self.FINALES_APP, 45) or estado
+        self.cobro["pinpad"] = estado_pinpad
+
+        if estado == "aprobado":
+            resultado = "aprobado"
+        elif estado_pinpad == "pin_tiempo_agotado":
+            resultado = "tiempo_agotado"
+        elif estado_pinpad == "pin_nip_cancelado":
+            resultado = "nip_cancelado"
+        elif estado in ("rechazado", "pin_declinada"):
+            resultado = "rechazado"
+        else:
+            resultado = "sin_resultado"
+        self.cobro["detalle_app"] = self.pago.detalle_error() if resultado != "aprobado" else ""
+        if self.ev:
+            self.ev.nota(f"Cobro: fases {self.cobro['fases']} · resultado '{resultado}'"
+                         + (f" · Rompefilas: '{self.cobro['detalle_app']}'" if self.cobro["detalle_app"] else ""))
         return self._despues_del_cobro(resultado)
 
-    def completar_cobro(self, simulado="aprobado", instruccion=""):
+    def esperar_sin_tarjeta(self, timeout):
+        """Deja el pinpad esperando sin presentar tarjeta hasta que expire (CP-TJ-ROM-003).
+        Regresa tiempo_agotado | rechazado | aprobado | sin_resultado."""
+        self.cobro = {"fases": []}
+        estado = self._esperar_estado(self.FINALES_APP + self.FINALES_PINPAD, timeout)
+        estado_pinpad = estado if estado in self.FINALES_PINPAD else ""
+        if estado_pinpad:
+            self._fase(estado, "Pinpad - " + estado.replace("pin_", "").replace("_", " "))
+            estado = self._esperar_estado(self.FINALES_APP, 45) or estado
+        self.cobro["pinpad"] = estado_pinpad
+        self.cobro["detalle_app"] = self.pago.detalle_error()
+        if estado_pinpad == "pin_tiempo_agotado":
+            return "tiempo_agotado"
+        return estado if estado in self.FINALES_APP else "sin_resultado"
+
+    def completar_cobro(self, simulado="aprobado", instruccion="", plan="contado"):
         """Termina el cobro con el módulo de pago ya abierto.
         Simulador de Memphis: toca 'Approved'/'Declined' según 'simulado' (sin tester).
-        Pinpad real: pide la tarjeta al tester (requiere INTERACTIVO=true)."""
+        Pinpad real: guía al tester con la tarjeta y el NIP (requiere INTERACTIVO=true); 'plan' es lo que la
+        suite elige si aparece '¿Cuántas mensualidades?' ('contado' o '6msi')."""
         if self.pago.es_simulador():
             if self.ev:
                 self.ev.nota(f"Módulo de pago: simulador de Memphis → '{'Approved' if simulado == 'aprobado' else 'Declined'}'")
@@ -394,11 +555,11 @@ class FlujoKiosko:
             resultado = self.pago.esperar_resultado(settings.TIMEOUT_APP_PAGO)
             return self._despues_del_cobro(resultado)
         requiere_tester(f"Pinpad real: {instruccion or 'presentar la tarjeta física'}")
-        return self.esperar_tarjeta_del_tester(instruccion or "Presente una tarjeta CON FONDOS.")
+        return self.esperar_tarjeta_del_tester(instruccion or "Presente una tarjeta CON FONDOS.", plan=plan)
 
     def exigir_pinpad_real(self, motivo):
-        """Casos que dependen de la tarjeta física (chip, banda, NIP, contactless, timeout de lectura):
-        con el simulador quedan Pendientes hasta que se integre la animación de tarjeta / NIP."""
+        """Casos que dependen de la tarjeta física (chip, banda, NIP, contactless): con el simulador quedan
+        Pendientes; con el pinpad real requieren al tester (INTERACTIVO=true)."""
         if self.pago.es_simulador():
             pendiente(f"{SIN_ANIMACION_TARJETA}. {motivo}")
         requiere_tester(motivo)

@@ -89,7 +89,8 @@ ESCANER_TITULO = (AppiumBy.ID, "com.android.topwise.topusdkservice:id/qr_code_fl
 P2_CONTADOR = contiene("adeudos en esta referencia")
 P2_BTN_CAMBIAR_REFERENCIA = boton("Cambiar referencia")
 P2_BTN_PAGAR = boton("Pagar ahora")
-P2_MONTOS = (X, '//android.widget.TextView[starts-with(@text, "$")]')
+# Los montos pueden ser negativos (condonaciones: "-$494.28")
+P2_MONTOS = (X, '//android.widget.TextView[starts-with(@text, "$") or starts-with(@text, "-$")]')
 P2_SELECCIONAR_TODO = contiene("Seleccionar todo")  # TODO confirmar: no existe en v1.6.36
 
 # ==============================================
@@ -118,12 +119,30 @@ P4_PAGO_PROCESADO = texto("Pago procesado")
 P4_REDIRIGIENDO = contiene("Redirigiendo a su comprobante")
 P4_BTN_VER_COMPROBANTE = boton("Ver comprobante ahora")
 # Pinpad real: TODO confirmar cuando se integre la animación de tarjeta / NIP
-P4_INSTRUCCION_TARJETA = _cualquiera("Inserte", "inserte", "Deslice", "Acerque", "acerque")
-P4_TIEMPO_AGOTADO = _cualquiera("Tiempo agotado", "tiempo de espera", "Tiempo de espera")
+P4_INSTRUCCION_TARJETA = _cualquiera("Inserte", "inserte", "inserta", "Deslice", "desliza", "Acerque", "Acerca")
+P4_TIEMPO_AGOTADO = _cualquiera("Tiempo agotado", "tiempo de espera", "Tiempo de espera")  # incluye el del pinpad
 P4_NIP_INCORRECTO = _cualquiera("NIP incorrecto", "PIN incorrecto")
+# Detalle del error en Rompefilas (debajo de "No se pudo procesar el pago")
+P4_ERROR_LECTURA = contiene("No se pudo leer la tarjeta")
+P4_ERROR_NIP = contiene("Error al capturar el nip")
 P4_TARJETA_NO_ACEPTADA = _cualquiera("no aceptada", "no soportada", "vencida")
 P4_BTN_CANCELAR_COBRO = (X, '//*[@text="Cancelar" or @text="CANCELAR" or @content-desc="Cancelar"]')
 P4_SIN_CONEXION_TERMINAL = contiene("No se pudo conectar con la terminal")
+
+# Pinpad real de Memphis (27/10/2026): pantallas del módulo de pago (otra app; transición de 0.5 a 1.5 s)
+PIN_INSERTAR = contiene("inserta o desliza tu tarjeta")           # 'Acerca, inserta o desliza tu tarjeta'
+PIN_LEYENDO = contiene("Leyendo tarjeta")                          # 'Leyendo tarjeta...'
+PIN_MENSUALIDADES = contiene("Cuántas mensualidades")              # hoja '¿Cuántas mensualidades?' (≥ $1,000)
+PIN_OPC_CONTADO = contiene("Sin mensualidades")                    # 'Sin mensualidades · Pago de contado'
+PIN_OPC_6MSI = contiene("6 meses sin intereses")                   # '6 meses sin intereses · MSI'
+PIN_NIP = contiene("Ingresa tu PIN")                               # 'Ingresa tu PIN en el lector'
+PIN_APROBADA = texto("Transacción aprobada")
+PIN_DECLINADA = texto("Transacción declinada")
+PIN_TIEMPO_AGOTADO = contiene("Tiempo de espera agotado")          # 'No se detectó ninguna tarjeta.'
+PIN_NIP_CANCELADO = contiene("Ingreso de PIN cancelado")
+PIN_BTN_CANCELAR = (X, '//*[@text="Cancelar"]')
+PIN_BTN_ACEPTAR = (X, '//*[@text="Aceptar"]')
+PIN_ETIQUETAS_RESUMEN = ("Monto", "Mensualidades")                 # recuadro 'Resumen' (valor = texto siguiente)
 
 # Simulador de pinpad de Memphis (v1.6.37): solo permite elegir el resultado
 SIM_PAQUETE = "com.memphis.pinpadsimulator"
@@ -143,7 +162,8 @@ P5_BTN_INICIO = boton("Inicio")
 P5_LIMITE_IMPRESIONES = contiene("Límite de impresiones")
 P5_CUENTA_REGRESIVA = contiene("Regresando al inicio en")
 # Etiquetas del comprobante (el valor es el texto siguiente)
-P5_CAMPOS = ("Nombre", "Referencia", "Autorización", "Tarjeta", "Fecha", "Estado")
+P5_CAMPOS = ("Nombre", "Referencia", "Método de pago", "Autorización", "Tarjeta", "Fecha", "Estado")
+P5_IMPRIMIENDO = contiene("Imprimiendo")
 
 # ==============================================
 # AVISOS (TODO confirmar: no existen en v1.6.36)

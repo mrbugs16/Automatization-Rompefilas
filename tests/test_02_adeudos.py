@@ -92,4 +92,4 @@ def test_CP_AD_ROM_004_cambiar_referencia(flujo, evidencia):
     assert resultado == "sin_adeudos", f"Se esperaba 'No se encontraron adeudos' (resultado: {resultado})"
     textos = p1.textos()
     assert contribuyente not in textos, f"Siguen visibles datos del contribuyente anterior ({contribuyente})"
-    assert not [t for t in textos if t.startswith("$")], "Siguen visibles montos del contribuyente anterior"
+    assert not [t for t in textos if t.lstrip("-").startswith("$")], "Siguen visibles montos del contribuyente anterior"

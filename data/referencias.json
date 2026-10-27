@@ -262,7 +262,7 @@
     },
     {
       "referencia": "1009901042827701",
-      "estado": "disponible",
+      "estado": "pagada",
       "contribuyente": "ISRAEL . LOPEZ AGUILAR",
       "adeudos": 4,
       "monto": 3129.01,
@@ -272,11 +272,13 @@
         "APROVECHAMIENTOS POR RECARGOS S/DERECHOS LIMPIA $150.76",
         "LIMPIA INMUEBLES HABITACIONAL $1,225.00"
       ],
-      "consultada": "15/10/2026 10:29"
+      "consultada": "15/10/2026 10:29",
+      "pagada_en": "HP-ROM-001",
+      "fecha_pago": "20/10/2026 09:58"
     },
     {
       "referencia": "1009901042797801",
-      "estado": "disponible",
+      "estado": "pagada",
       "contribuyente": "ISRAEL ULISES . HERRERA GOMEZ",
       "adeudos": 4,
       "monto": 12665.73,
@@ -286,11 +288,13 @@
         "APROVECHAMIENTOS POR RECARGOS S/DERECHOS LIMPIA $481.36",
         "LIMPIA INMUEBLES HABITACIONAL $4,880.24"
       ],
-      "consultada": "15/10/2026 10:30"
+      "consultada": "15/10/2026 10:30",
+      "pagada_en": "HP-ROM-001",
+      "fecha_pago": "20/10/2026 15:58"
     },
     {
       "referencia": "1009901048002301",
-      "estado": "disponible",
+      "estado": "pagada",
       "contribuyente": "EDGAR ISRAEL . TORRES PEREA",
       "adeudos": 4,
       "monto": 5822.49,
@@ -300,7 +304,9 @@
         "APROVECHAMIENTOS POR RECARGOS S/DERECHOS LIMPIA $322.96",
         "LIMPIA INMUEBLES HABITACIONAL $1,942.50"
       ],
-      "consultada": "15/10/2026 10:30"
+      "consultada": "15/10/2026 10:30",
+      "pagada_en": "CP-CC-ROM-006",
+      "fecha_pago": "20/10/2026 16:04"
     },
     {
       "referencia": "1009901042737901",

@@ -19,7 +19,7 @@ def _sin_datos_del_contribuyente(flujo, evidencia, momento):
     p1 = flujo.identificacion
     textos = p1.textos()
     # Datos del contribuyente atendido (no REF_VALIDA: tras un pago ya apunta a la siguiente referencia)
-    restos = [t for t in textos if t == evidencia.contribuyente or t.startswith("$") or evidencia.referencia in t]
+    restos = [t for t in textos if t == evidencia.contribuyente or t.lstrip("-").startswith("$") or evidencia.referencia in t]
     assert not restos, f"Después de {momento} siguen visibles datos del contribuyente anterior: {restos}"
     assert p1.referencia() == L.P1_PLACEHOLDER, f"Después de {momento} quedó la referencia '{p1.referencia()}' en el campo"
 

@@ -37,14 +37,24 @@ def pedir_accion(mensaje, hasta=None, timeout=None, evidencia=None, pasos=None):
 
 
 def pedir_tarjeta(instruccion, referencia="", monto=None, hasta=None, timeout=None, evidencia=None):
-    """Indicación para el cobro: presentar la tarjeta y capturar el NIP (mínimo 120 s, ver TIMEOUT_TARJETA)."""
-    timeout = max(timeout or settings.TIMEOUT_TARJETA, 120)
+    """Indicación para presentar la tarjeta en el pinpad (mínimo 3 min, ver TIMEOUT_TARJETA)."""
+    timeout = max(timeout or settings.TIMEOUT_TARJETA, 180)
     cobro = " · ".join(t for t in (f"Referencia {referencia}" if referencia else "",
                                    f"Monto ${monto:,.2f}" if monto else "") if t)
     pasos = [
         *([f"💳 {cobro}"] if cobro else []),
         "1) INSERTE la tarjeta en el lector de chip (o deslícela por la banda / acérquela si es contactless)",
-        "2) CAPTURE el NIP en la pantalla segura de la T6 y confirme",
-        "3) NO retire la tarjeta hasta que la T6 lo indique; la suite detecta el resultado sola",
+        f"2) Si el monto es ≥ ${settings.MSI_MONTO_MINIMO:,.0f} aparece '¿Cuántas mensualidades?': la suite elige el plan sola",
+        "3) Después se pedirá el NIP (tendrá otros 3 minutos)",
     ]
     return pedir_accion(instruccion, hasta=hasta, timeout=timeout, evidencia=evidencia, pasos=pasos)
+
+
+def pedir_nip(hasta=None, timeout=None, evidencia=None):
+    """Indicación para capturar el NIP en el lector (mínimo 3 min, ver TIMEOUT_NIP)."""
+    timeout = max(timeout or settings.TIMEOUT_NIP, 180)
+    pasos = [
+        "1) CAPTURE el NIP en el teclado del lector (las teclas cambian de lugar) y presione 'Aceptar'",
+        "2) NO retire la tarjeta hasta que el pinpad muestre 'Ya puedes retirar tu tarjeta'",
+    ]
+    return pedir_accion("Ingrese el NIP en el lector.", hasta=hasta, timeout=timeout, evidencia=evidencia, pasos=pasos)

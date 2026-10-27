@@ -2,9 +2,13 @@
 MÓDULO 09 - INTEGRIDAD DE COBRO
 · CP-IC-ROM-001 a CP-IC-ROM-003
 """
+import re
+from collections import Counter
+
 import pytest
 
 from config import locators as L
+from config import settings
 from config.datos_prueba import MSG_SIN_ADEUDOS, REF_VALIDA
 from core import adb, referencias
 from core.marcadores import bloqueado, caso, manual, pendiente
@@ -16,10 +20,13 @@ def test_CP_IC_ROM_001_misma_referencia_totem_y_t6():
     pass
 
 
-def _instancias_en_pila():
-    """Actividades en la pila de tareas (para detectar dos módulos de pago abiertos)."""
+def _pantallas_de_cobro():
+    """{actividad: instancias} del módulo de pago en la pila de tareas.
+    Un cobro normal del simulador abre DOS actividades distintas (PinPadCommandActivity -> SimProcessingActivity);
+    un doble cobro se ve como la MISMA actividad repetida."""
     _, salida = adb.shell("dumpsys activity activities", silencioso=True)
-    return [l.strip() for l in salida.splitlines() if "ActivityRecord{" in l and "Hist" in l]
+    actividades = re.findall(r"Hist\s+#\d+: ActivityRecord\{\S+ \S+ ([^ }]+)", salida)
+    return Counter(a for a in actividades if not a.startswith((settings.APP_PACKAGE, "com.android.launcher")))
 
 
 @caso("CP-IC-ROM-002")
@@ -39,18 +46,18 @@ def test_CP_IC_ROM_002_doble_toque(flujo, evidencia, registrar_app_pago):
     assert flujo.metodo.visible(), "No se avanzó a P3"
 
     # Doble toque en 'Tarjeta': una sola solicitud de cobro
-    pila_antes = len(_instancias_en_pila())
     flujo.metodo.doble_toque(L.P3_BTN_TARJETA)
     estado = flujo.pago.esperar_respuesta()
     registrar_app_pago(estado)
-    flujo.pago.esperar_estable(1)
+    flujo.pago.esperar_estable(2)
     flujo._captura(f"Tras doble toque en 'Tarjeta': {estado}")
     if estado in ("error_app_pago", "sin_respuesta"):
         bloqueado("Doble toque en 'Pagar ahora' OK (una sola P3); el de 'Tarjeta' requiere el módulo de pago "
                   f"('{flujo.pago.mensaje_error() or estado}')")
-    nuevas = len(_instancias_en_pila()) - pila_antes
-    evidencia.nota(f"Actividades nuevas en la pila tras el doble toque: {nuevas}")
-    assert nuevas <= 1, f"El doble toque abrió {nuevas} pantallas de cobro (se esperaba una)"
+    pantallas = _pantallas_de_cobro()
+    evidencia.nota(f"Pantallas del módulo de pago en la pila: {dict(pantallas)}")
+    repetidas = {a: n for a, n in pantallas.items() if n > 1}
+    assert not repetidas, f"El doble toque abrió el módulo de pago más de una vez: {repetidas}"
     evidencia.nota("⚠ (Manual) Confirmar en el adquirente que solo hubo una solicitud de cobro")
 
 

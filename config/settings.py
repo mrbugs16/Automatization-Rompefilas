@@ -50,7 +50,7 @@ TIMEOUT_ARRANQUE = int(os.getenv("TIMEOUT_ARRANQUE", "30"))      # reinicio de l
 # ==============================================
 # v1.6.36: el aviso '¿Sigue ahí?' aparece a los ~60 s y regresa al inicio ~20 s después
 TIMEOUT_INACTIVIDAD = int(os.getenv("TIMEOUT_INACTIVIDAD", "180"))
-TIMEOUT_TARJETA_SIN_ACCION = int(os.getenv("TIMEOUT_TARJETA_SIN_ACCION", "90"))  # matriz: ~45 s
+TIMEOUT_TARJETA_SIN_ACCION = int(os.getenv("TIMEOUT_TARJETA_SIN_ACCION", "240"))  # matriz: ~45 s; se mide el real
 TIEMPO_MAX_ATENCION = int(os.getenv("TIEMPO_MAX_ATENCION", "90"))
 MIN_TOQUE_DP = int(os.getenv("MIN_TOQUE_DP", "48"))
 
@@ -61,8 +61,11 @@ MIN_TOQUE_DP = int(os.getenv("MIN_TOQUE_DP", "48"))
 # true  : la suite lleva la app hasta el punto y espera a que el tester haga la acción en la T6
 INTERACTIVO = _bool("INTERACTIVO")
 TIMEOUT_INTERACCION = int(os.getenv("TIMEOUT_INTERACCION", "120"))
-# Tiempo para insertar/deslizar/acercar la tarjeta y capturar el NIP (nunca menos de 120 s)
-TIMEOUT_TARJETA = max(120, int(os.getenv("TIMEOUT_TARJETA", "150")))
+# Pinpad real: tiempo para insertar/deslizar/acercar la tarjeta y, aparte, para capturar el NIP (mínimo 3 min c/u)
+TIMEOUT_TARJETA = max(180, int(os.getenv("TIMEOUT_TARJETA", "180")))
+TIMEOUT_NIP = max(180, int(os.getenv("TIMEOUT_NIP", "180")))
+# Lo que tarda el pinpad en abrir / regresar a Rompefilas (la transición real es de 0.5 a 1.5 s)
+TIMEOUT_TRANSICION_PINPAD = int(os.getenv("TIMEOUT_TRANSICION_PINPAD", "15"))
 
 # ==============================================
 # DATOS Y EVIDENCIA

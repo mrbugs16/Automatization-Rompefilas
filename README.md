@@ -136,19 +136,33 @@ los adeudos y el total. Estados:
 Los casos de 6 MSI eligen la referencia por monto (≥ $1,000 o < $1,000). El reporte HTML muestra en cada caso
 la referencia, el contribuyente y el monto cobrado, y la matriz de resultados los agrega en *Observaciones*.
 
-## Módulo de pago: simulador de Memphis (v1.6.37)
+## Módulo de pago: pinpad real de Memphis (27/10/2026)
 
-Desde v1.6.37 el módulo de pago es el simulador `com.memphis.pinpadsimulator` (botones *Approved* / *Declined*).
-La suite lo detecta y **toca el botón sola** (`FlujoKiosko.completar_cobro`), así que los flujos de pago aprobado y
-rechazado corren desatendidos: happy path, comprobante, reimpresión, regreso al inicio, datos enmascarados,
-referencia repetida, fecha/hora, notificación y cambio de red durante el cobro. **Cada pago aprobado usa una
-referencia** del catálogo (se marca `pagada` sola).
+El cobro ya usa el pinpad real (otra app; la transición con Rompefilas dura de 0.5 a 1.5 s). Pantallas:
 
-> ⚠ Durante la corrida **nadie debe tocar la T6**: si alguien presiona *Approved* en el simulador, se paga la
-> referencia que esté en curso.
+| Pinpad | Qué hace la suite |
+|---|---|
+| *Acerca, inserta o desliza tu tarjeta* (Resumen · Monto) | Valida el monto y da **3 min** al tester para la tarjeta |
+| *Leyendo tarjeta…* | Espera |
+| *¿Cuántas mensualidades?* (solo **≥ $1,000**) | **Elige el plan sola**: *Sin mensualidades* en los casos normales, *6 meses sin intereses* en los de 6 MSI |
+| *Ingresa tu PIN en el lector* (Resumen · Monto · Mensualidades) | Da **3 min** al tester para el NIP |
+| *Transacción aprobada* / *Transacción declinada* / *Tiempo de espera agotado* / *Ingreso de PIN cancelado* | Registra el resultado y espera a Rompefilas |
 
-Los casos que dependen de la tarjeta física (chip, banda, contactless, NIP, timeout de lectura, cancelar en el
-pinpad) quedan **Pendientes** hasta que se integre la animación para insertar la tarjeta y capturar el NIP.
+En Rompefilas: *Pago exitoso* → comprobante *¡Pago exitoso!* (se imprime solo), o *No se pudo procesar el pago* con el
+detalle (*No se pudo leer la tarjeta correctamente*, *Error al capturar el nip*…). Cada fase queda en la evidencia.
+
+Los casos con tarjeta física corren con `INTERACTIVO=true` (uno por uno, por ejemplo):
+
+```powershell
+$env:INTERACTIVO = "true"; python -m pytest -k HP_ROM_001 --abrir-reporte
+```
+
+Sin tester corren CP-MP-ROM-001 (monto e instrucción en el pinpad), CP-TJ-ROM-003 (se deja expirar el pinpad) y
+CP-TJ-ROM-012 (la suite toca *Cancelar*). **Cada pago aprobado usa una referencia** (se marca `pagada` sola).
+
+Si el módulo vuelve a ser el simulador (*Approved* / *Declined*), la suite lo detecta y toca el botón sola.
+
+> ⚠ Las referencias pueden traer **condonaciones con monto negativo** (ej. `-$494.28`): la suite las resta del total.
 
 ## Regla de negocio: pago de adeudos en conjunto
 
@@ -157,17 +171,16 @@ CP-AD-ROM-001 a 003 validan que no haya selección individual y que P3 cobre la 
 
 ## Cobro con tarjeta física (INTERACTIVO=true)
 
-Al llegar al módulo de pago, la terminal muestra la indicación con la referencia y el monto, suena la campana
-y da **al menos 120 s** (`TIMEOUT_TARJETA`, default 150 s) para insertar/deslizar/acercar la tarjeta y capturar
-el NIP, recordando el tiempo restante cada 10 s. La suite detecta el resultado sola.
+La terminal muestra la indicación con la referencia y el monto, suena la campana y recuerda el tiempo restante
+cada 10 s: **3 min para la tarjeta** (`TIMEOUT_TARJETA`) y **3 min para el NIP** (`TIMEOUT_NIP`), nunca menos.
 
 ## 6 meses sin intereses (CP-MSI-ROM-001 a 006)
 
-Aplica a transacciones **desde $1,000.00** y se **valida a mano**. **Aún no está integrado en v1.6.37**: el plan se
-elige en el módulo de pago y depende de la animación de tarjeta / NIP que todavía falta. Los casos se mantienen:
-la suite elige la referencia por monto, llega a P3, verifica que se cobre ese total y calcula la mensualidad
-(total / 6) sin abrir el módulo de pago; el caso queda *Pendiente* con lo que hay que validar cuando se integre.
-En el reporte llevan la etiqueta **6 MSI** y se pueden separar con el filtro *Tipo de pago*.
+Aplica a transacciones **desde $1,000.00**. **Integrado el 27/10/2026**: tras leer la tarjeta aparece
+*¿Cuántas mensualidades?* y el NIP muestra *Mensualidades 6*. La suite elige la referencia por monto (≥ / < $1,000),
+verifica el total en P3 y en el pinpad, elige el plan del caso y valida si se ofreció 6 MSI, las mensualidades del NIP
+y el comprobante. El tester presenta la tarjeta (crédito participante, débito o no participante según el caso) y el
+NIP; el ticket impreso se revisa a mano. En el reporte llevan la etiqueta **6 MSI** (filtro *Tipo de pago*).
 
 ---
 
